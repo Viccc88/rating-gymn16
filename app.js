@@ -163,6 +163,45 @@
     return out;
   }
 
+  // ---------- объявления (лист «Объявления»: Текст | Показывать | Показывать до) ----------
+  function parseDate(v) {
+    let m = String(v || "").match(/^(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/);
+    if (m) return new Date(+(m[3].length === 2 ? "20" + m[3] : m[3]), +m[2] - 1, +m[1], 23, 59, 59);
+    m = String(v || "").match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59) : null;
+  }
+
+  function parseAnnouncements(rows) {
+    const h = rows.findIndex(r => r.some(c => /^(объявлени[ея]|текст)$/i.test(c)));
+    if (h < 0) return [];                          // это не лист объявлений (например, листа ещё нет)
+    const head = rows[h].map(c => c.toLowerCase());
+    const cT = head.findIndex(c => /^(объявлени[ея]|текст)$/.test(c));
+    const cUntil = head.findIndex(c => /(^|\s)до(\s|$)|срок/.test(c));
+    const cShow = head.findIndex((c, i) => i !== cUntil && /показ/.test(c));
+    const now = new Date();
+    return rows.slice(h + 1).filter(r => {
+      if (!r[cT]) return false;
+      if (cShow >= 0 && /^(нет|no|0|false)$/i.test(r[cShow] || "")) return false;
+      const until = cUntil >= 0 ? parseDate(r[cUntil]) : null;
+      return !until || until >= now;
+    }).map(r => r[cT]);
+  }
+
+  const linkify = (s) => esc(s).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)»]/g, u => `<a href="${u}" target="_blank" rel="noopener">${u}</a>`);
+
+  function loadAnnouncements() {
+    return fetchSheet(CFG.announcementsSheet || "Объявления")
+      .then(t => parseAnnouncements(parseCSV(t)))
+      .then(list => {
+        if (!list.length) return;
+        const box = document.createElement("section");
+        box.id = "announcements"; box.className = "ann"; box.setAttribute("aria-label", "Объявления");
+        box.innerHTML = list.map(t => `<div class="ann__item"><span class="ann__tag">Объявление</span><p>${linkify(t)}</p></div>`).join("");
+        document.querySelector("main").prepend(box);
+      })
+      .catch(() => { /* объявления необязательны — сайт работает и без них */ });
+  }
+
   // ---------- render ----------
   function fillSelects() {
     const sel = $("class-select");
@@ -253,6 +292,7 @@
   }
 
   // ---------- init ----------
+  loadAnnouncements();
   load().then(() => {
     fillSelects();
     $("status").textContent = "";

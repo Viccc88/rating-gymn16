@@ -107,3 +107,10 @@ table.rating { width: 100%; border-collapse: collapse; font-size: .93rem; }
   .seal { width: 44px; height: 44px; }
 }
 @media (max-width: 760px) { .stats .stat:last-child { grid-column: 1 / -1; } }
+
+/* объявления */
+.ann { display: grid; gap: 10px; }
+.ann__item { background: #fff8e6; border: 1.5px solid #f0c96a; border-left-width: 6px; border-radius: var(--radius); padding: 14px 18px; box-shadow: 0 1px 2px rgba(20,30,70,.06), 0 4px 16px rgba(20,30,70,.05); }
+.ann__tag { display: block; font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #8a5a00; margin-bottom: 2px; }
+.ann__item p { margin: 0; white-space: pre-line; overflow-wrap: anywhere; color: var(--ink); }
+.ann__item a { color: var(--blue); }
