@@ -33,6 +33,12 @@
     document.querySelectorAll(".q-fx").forEach(e => e.remove());
     document.body.classList.toggle("quest-on", active());
     if (!active()) return;
+    // плашка внизу экрана: видно, что квест идёт, и его можно завершить
+    document.body.insertAdjacentHTML("beforeend", `<div class="qpill q-fx" role="region" aria-label="Квест">
+      <button type="button" class="qpill__open">✦ Квест · шаг ${Math.min(answers.length + 1, TOTAL)} из ${TOTAL}</button>
+      <button type="button" class="qpill__stop">Завершить</button></div>`);
+    document.querySelector(".qpill__open").addEventListener("click", open);
+    document.querySelector(".qpill__stop").addEventListener("click", () => { render(); askStop(); });
     const l = fx("letters");
     if (l) for (const [sel, ch] of l.letters) {
       const el = document.querySelector(sel);
@@ -99,15 +105,33 @@
           <select id="q-cls"><option value="">Класс</option>${opts}</select>
           <button class="btn" type="submit">Отправить</button>
         </form>${note}`;
+      d.insertAdjacentHTML("beforeend", `<button type="button" class="linkbtn quest__stop" id="q-ask-stop">Завершить квест</button>`);
       d.querySelector("#q-final").addEventListener("submit", finish);
+      d.querySelector("#q-ask-stop").addEventListener("click", askStop);
       return;
     }
     d.innerHTML = head(`Шаг ${answers.length + 1} из ${TOTAL}`) +
       `<div class="quest__bar"><span style="width:${answers.length / TOTAL * 100}%"></span></div>
        <p class="quest__text">${R.esc(cur.text)}</p>
        <form class="quest__form" id="q-step"><input id="q-answer" placeholder="Ответ" autocomplete="off"><button class="btn" type="submit">Проверить</button></form>
-       ${note}<p class="muted quest__hint">Окно можно закрыть: прогресс сохранится на этом устройстве. Снова открыть — пять нажатий на звезду.</p>`;
+       ${note}<p class="muted quest__hint">Окно можно закрыть: прогресс сохранится на этом устройстве. Вернуться — плашка «Квест» внизу экрана.</p>
+       <button type="button" class="linkbtn quest__stop" id="q-ask-stop">Завершить квест</button>`;
     d.querySelector("#q-step").addEventListener("submit", check);
+    d.querySelector("#q-ask-stop").addEventListener("click", askStop);
+  }
+
+  function askStop() {
+    const d = ensureDialog();
+    d.innerHTML = head("Завершить квест?") + `<p>Квест исчезнет с сайта, а прогресс на этом устройстве сбросится. Начать заново можно будет тем же способом, каким ты его нашёл.</p>
+      <div class="quest__form"><button class="btn" type="button" id="q-stop">Завершить</button><button class="btn btn--ghost" type="button" id="q-back">Продолжить квест</button></div>`;
+    d.querySelector("#q-stop").addEventListener("click", stop);
+    d.querySelector("#q-back").addEventListener("click", () => render());
+    if (!d.open) d.showModal();
+  }
+  function stop() {
+    started = false; answers = []; payloads = [DATA.first]; save();
+    R.renderAll(); applyFx();
+    dlg.close();
   }
 
   let busy = false;

@@ -225,3 +225,10 @@ dialog.quest::backdrop { background: rgba(15,25,70,.55); backdrop-filter: blur(2
 .quest__msg.err { color: #b23a3a; }
 .quest__hint { font-size: .8rem; margin-top: 14px; }
 .mono { font-family: ui-monospace, Consolas, monospace; }
+.qpill { position: fixed; right: 16px; bottom: 16px; z-index: 50; display: flex; align-items: center; gap: 2px; background: var(--blue-dark); color: #fff; border-radius: 999px; padding: 4px; box-shadow: 0 6px 20px rgba(10,20,60,.3); font-size: .85rem; max-width: calc(100vw - 32px); }
+.qpill button { font: inherit; border: 0; background: none; color: inherit; cursor: pointer; padding: 6px 12px; border-radius: 999px; white-space: nowrap; }
+.qpill__open:hover { background: rgba(255,255,255,.12); }
+.qpill__stop { background: rgba(255,255,255,.16) !important; }
+.qpill__stop:hover { background: rgba(255,255,255,.26) !important; }
+.quest__stop { margin-top: 8px; font-size: .82rem; color: var(--muted); }
+body.quest-on main { padding-bottom: 80px; }
