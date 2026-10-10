@@ -201,12 +201,14 @@
     const cQ = head.findIndex(c => /вопрос/.test(c));
     const cF = head.findIndex((c, i) => i !== cQ && /faq|публик/.test(c));
     const cA = head.findIndex((c, i) => i !== cQ && /ответ/.test(c));
+    const cH = head.findIndex(c => /скры/.test(c));
     return rows.slice(h + 1).map(r => ({
       code: normCode(r[cC]),
       status: cS >= 0 ? r[cS] : "",
       answer: cA >= 0 ? r[cA] : "",
       question: cQ >= 0 ? r[cQ] : "",
       faq: cF >= 0 && /^(да|yes|1|true|✓|v)$/i.test(r[cF] || ""),
+      hide: cH >= 0 && /^(да|yes|1|true|✓|v)$/i.test(r[cH] || ""),
     })).filter(a => a.code || (a.faq && a.question));
   }
 
@@ -369,18 +371,45 @@
       return { status: a.status || "Есть ответ", answer: a.answer, kind: no ? "no" : done ? "done" : "wait" };
     }
 
-    function renderTickets(extra) {
+    // Убираем из списка на устройстве обращения, которые самоуправление скрыло (флажок «Скрыть у пользователя»)
+    // или удалило из таблицы. Удалённые проверяем только у обращений старше часа: «Ответы» обновляются с задержкой.
+    function prune() {
+      if (!S.answers.some(a => a.code)) return;          // лист не загрузился — ничего не удаляем
       const tickets = readJSON(TICKETS, []);
+      const left = tickets.filter(t => {
+        const a = S.answers.find(x => x.code === t.code);
+        if (a) return !a.hide;
+        return !t.date || Date.now() - t.date < 36e5;
+      });
+      if (left.length !== tickets.length) store.set(TICKETS, JSON.stringify(left));
+    }
+
+
+    function renderTickets(extra) {
+      prune();
+      const tickets = readJSON(TICKETS, []);
+      if (extra && S.answers.some(a => a.code === extra && a.hide)) extra = null;
       if (extra && !tickets.some(t => t.code === extra)) tickets.unshift({ code: extra, type: "Обращение", date: null, preview: "" });
       $("ticket-list").innerHTML = tickets.length ? tickets.map(t => {
         const st = statusOf(t.code);
         const known = S.answers.some(a => a.code === t.code);
         return `<li class="ticket ${st.kind}">
-          <div class="ticket__top"><b>${t.code}</b><span class="badge ${st.kind}">${esc(known || t.date ? st.status : "Код не найден")}</span></div>
+          <div class="ticket__top"><b>${t.code}</b><span class="badge ${st.kind}">${esc(known || t.date ? st.status : "Код не найден")}</span>
+            <button type="button" class="ticket__x" data-remove="${t.code}" aria-label="Убрать ${t.code} из списка" title="Убрать из списка">×</button></div>
           <div class="ticket__meta">${esc(t.type)}${t.date ? " · " + new Date(t.date).toLocaleDateString("ru-RU") : ""}${t.preview ? " · " + esc(t.preview) : ""}</div>
           ${st.answer ? `<p class="ticket__answer">${linkify(st.answer)}</p>` : ""}
         </li>`;
-      }).join("") : `<li class="muted">Здесь появятся ваши обращения с этого устройства.</li>`;
+      }).join("") + (tickets.length > 1 ? `<li class="ticket-clear"><button type="button" class="linkbtn" data-clear>Очистить список</button></li>` : "")
+        : `<li class="muted">Здесь появятся ваши обращения с этого устройства.</li>`;
+    }
+
+    function onListClick(e) {
+      const rm = e.target.closest("[data-remove]");
+      if (rm) {
+        store.set(TICKETS, JSON.stringify(readJSON(TICKETS, []).filter(t => t.code !== rm.dataset.remove)));
+        renderTickets(); return;
+      }
+      if (e.target.closest("[data-clear]")) { store.set(TICKETS, "[]"); renderTickets(); }
     }
 
     function syncClass() {
@@ -404,6 +433,7 @@
         renderTickets(code);
         $("ticket-code").value = "";
       });
+      $("ticket-list").addEventListener("click", onListClick);
       renderTickets();
     }
 

@@ -232,3 +232,9 @@ dialog.quest::backdrop { background: rgba(15,25,70,.55); backdrop-filter: blur(2
 .qpill__stop:hover { background: rgba(255,255,255,.26) !important; }
 .quest__stop { margin-top: 8px; font-size: .82rem; color: var(--muted); }
 body.quest-on main { padding-bottom: 80px; }
+.ticket__top { flex-wrap: nowrap; }
+.ticket__top .badge { margin-left: auto; }
+.ticket__x { border: 0; background: none; color: var(--muted); font-size: 1.15rem; line-height: 1; padding: 0 2px; cursor: pointer; flex: none; }
+.ticket__x:hover { color: #b23a3a; }
+.ticket-clear { text-align: right; }
+.ticket-clear .linkbtn { margin-top: 0; font-size: .82rem; color: var(--muted); }
