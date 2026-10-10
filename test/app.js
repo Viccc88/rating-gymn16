@@ -362,7 +362,8 @@
 
     function statusOf(code) {
       const a = S.answers.find(x => x.code === code);
-      if (!a) return { status: "Получено, ещё не рассмотрено", answer: "", kind: "wait" };
+      // строка с кодом появляется в «Ответах» сразу после отправки — пока нет статуса и ответа, обращение ждёт
+      if (!a || (!a.status && !a.answer)) return { status: "Получено, ещё не рассмотрено", answer: "", kind: "wait" };
       const done = /(рассмотр|готов|выполн|одобр|закры|решен|ответ)/i.test(a.status) || (!a.status && a.answer);
       const no = /(отклон|отказ)/i.test(a.status);
       return { status: a.status || "Есть ответ", answer: a.answer, kind: no ? "no" : done ? "done" : "wait" };
