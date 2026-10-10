@@ -81,7 +81,7 @@
   }
 
   // ---------- state ----------
-  const S = { months: [], classes: {}, rewards: [], spent: {}, current: null, month: null, tab: "all" };
+  const S = { months: [], classes: {}, rewards: [], spent: {}, rules: [], answers: [], current: null, month: null, tab: "all" };
 
   async function load() {
     $("site-title").textContent = CFG.title;
@@ -135,6 +135,19 @@
       c.rankPar = 1 + par.filter(x => S.classes[x].year > c.year).length;
       c.parSize = par.length;
     });
+
+    // изменение места: рейтинг по всем месяцам против рейтинга без последнего месяца
+    if (S.months.length >= 2) {
+      const last = S.months[S.months.length - 1];
+      const prevYear = (k) => S.classes[k].year - (last.classes[k]?.total || 0);
+      for (const k of ranked) {
+        const p = prevYear(k);
+        const prevRank = 1 + ranked.filter(x => prevYear(x) > p).length;
+        S.classes[k].delta = prevRank - S.classes[k].rank;   // >0 — поднялся
+        const par = ranked.filter(x => parallelOf(x) === parallelOf(k));
+        S.classes[k].deltaPar = (1 + par.filter(x => prevYear(x) > p).length) - S.classes[k].rankPar;
+      }
+    }
   }
 
   function parseRewards(rows) {
@@ -161,6 +174,40 @@
       out[k] = (out[k] || 0) + num(r[cP]);
     }
     return out;
+  }
+
+  // ---------- правила (лист «Правила»: Категория | Как получить баллы | Максимум) ----------
+  function parseRules(rows) {
+    const h = rows.findIndex(r => r.some(c => /^категори/i.test(c)));
+    if (h < 0) return [];
+    const head = rows[h].map(c => c.toLowerCase());
+    const cN = head.findIndex(c => /^категори/.test(c));
+    const cD = head.findIndex((c, i) => i !== cN && /(как|описан|критери|услови)/.test(c));
+    if (cD < 0) return [];
+    let cM = head.findIndex(c => /макс/.test(c));
+    if (cM < 0) cM = head.findIndex((c, i) => i !== cD && /^балл/.test(c));
+    // строки без описания не показываем — их можно заполнить позже
+    return rows.slice(h + 1).filter(r => r[cN] && r[cD]).map(r => ({ name: r[cN], desc: r[cD], max: cM >= 0 ? r[cM] : "" }));
+  }
+
+  // ---------- ответы (лист «Ответы»: Код | Статус | Ответ | Вопрос для FAQ | В FAQ) ----------
+  const normCode = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "").replace(/^(.{3})(.{3})$/, "$1-$2");
+  function parseAnswers(rows) {
+    const h = rows.findIndex(r => r.some(c => /^код/i.test(c)) && r.some(c => /(ответ|статус)/i.test(c)));
+    if (h < 0) return [];
+    const head = rows[h].map(c => c.toLowerCase());
+    const cC = head.findIndex(c => /^код/.test(c));
+    const cS = head.findIndex(c => /статус/.test(c));
+    const cQ = head.findIndex(c => /вопрос/.test(c));
+    const cF = head.findIndex((c, i) => i !== cQ && /faq|публик/.test(c));
+    const cA = head.findIndex((c, i) => i !== cQ && /ответ/.test(c));
+    return rows.slice(h + 1).map(r => ({
+      code: normCode(r[cC]),
+      status: cS >= 0 ? r[cS] : "",
+      answer: cA >= 0 ? r[cA] : "",
+      question: cQ >= 0 ? r[cQ] : "",
+      faq: cF >= 0 && /^(да|yes|1|true|✓|v)$/i.test(r[cF] || ""),
+    })).filter(a => a.code || (a.faq && a.question));
   }
 
   // ---------- объявления (лист «Объявления»: Текст | Показывать | Показывать до) ----------
@@ -201,6 +248,182 @@
       })
       .catch(() => { /* объявления необязательны — сайт работает и без них */ });
   }
+
+  async function loadAnswers() {
+    try { S.answers = parseAnswers(parseCSV(await fetchSheet(CFG.answersSheet || "Ответы"))); }
+    catch { S.answers = []; }
+  }
+
+  // ---------- обращения ----------
+  const Contact = (() => {
+    const C = CFG.contact || {};
+    const F = C.fields || {};
+    const enabled = !!(C.formId && F.code && F.type && F.name && F.cls && F.message);
+    const ALPH = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const LOG = "contactLog", TICKETS = "myTickets";
+    const readJSON = (k, d) => { try { return JSON.parse(store.get(k)) ?? d; } catch { return d; } };
+
+    function newCode() {
+      const a = new Uint8Array(6); crypto.getRandomValues(a);
+      const s = [...a].map(x => ALPH[x % ALPH.length]).join("");
+      return s.slice(0, 3) + "-" + s.slice(3);
+    }
+
+    function limitLeft() {
+      const now = Date.now();
+      const log = readJSON(LOG, []).filter(t => now - t < 864e5);
+      const cd = (C.cooldownMin ?? 5) * 6e4;
+      const last = log.length ? Math.max(...log) : 0;
+      if (now - last < cd) return `Следующее обращение можно отправить через ${Math.ceil((cd - (now - last)) / 6e4)} мин.`;
+      if (log.length >= (C.perDay ?? 5)) return "Сегодня отправлено максимальное число обращений. Попробуйте завтра.";
+      return "";
+    }
+
+    function setType(type) {
+      $("cf-type").value = type;
+      $("cf-error-fields").hidden = type !== "Ошибка в баллах";
+      if (type === "Ошибка в баллах") fillCats();
+    }
+
+    function fillClasses() {
+      const sel = $("cf-cls");
+      sel.innerHTML = `<option value="">—</option>` + Object.keys(S.classes)
+        .sort((a, b) => a.localeCompare(b, "ru", { numeric: true }))
+        .map(k => `<option value="${k}">${prettyClass(k)}</option>`).join("");
+      if (S.current) sel.value = S.current;
+      $("cf-month").innerHTML = S.months.map(m => `<option>${esc(m.name)}</option>`).join("");
+      $("cf-month").value = S.month;
+    }
+
+    function fillCats() {
+      const m = S.months.find(x => x.name === $("cf-month").value);
+      const keep = $("cf-cat").value;
+      $("cf-cat").innerHTML = `<option value="">— любая / несколько —</option>` + (m ? m.cats.map(c => `<option>${esc(c)}</option>`).join("") : "");
+      $("cf-cat").value = keep;
+    }
+
+
+    function msg(text, kind) { const m = $("cf-msg"); m.textContent = text; m.className = "cform__msg " + (kind || ""); }
+
+    function open(type, opts = {}) {
+      setType(type);
+      if (S.current) $("cf-cls").value = S.current;
+      if (opts.month) { $("cf-month").value = opts.month; fillCats(); }
+      document.getElementById("contact").scrollIntoView({ behavior: "smooth", block: "start" });
+      setTimeout(() => $(S.current ? "cf-name" : "cf-cls").focus({ preventScroll: true }), 400);
+    }
+
+    function context() {
+      const t = $("cf-type").value;
+      if (t === "Ошибка в баллах") return `Месяц: ${$("cf-month").value}` + ($("cf-cat").value ? `; категория: ${$("cf-cat").value}` : "");
+      return "";
+    }
+
+    async function submit(e) {
+      e.preventDefault();
+      const form = $("contact-form");
+      if (form.website.value) { msg("Отправлено.", "ok"); form.reset(); return; }   // ловушка для ботов
+      if (!enabled) { msg("Форма ещё не подключена. Попробуйте позже.", "err"); return; }
+      const name = $("cf-name").value.trim().replace(/\s+/g, " ");
+      const cls = $("cf-cls").value;
+      const text = $("cf-message").value.trim();
+      const type = $("cf-type").value;
+      if (!/^[А-ЯЁа-яёA-Za-z-]{2,}\s[А-ЯЁа-яёA-Za-z-]{2,}/.test(name)) { msg("Укажите фамилию и имя.", "err"); $("cf-name").focus(); return; }
+      if (!cls) { msg("Выберите класс.", "err"); $("cf-cls").focus(); return; }
+      if (text.length < 10) { msg("Опишите подробнее — хотя бы 10 символов.", "err"); $("cf-message").focus(); return; }
+      const wait = limitLeft();
+      if (wait) { msg(wait, "err"); return; }
+
+      const code = newCode();
+      const body = new URLSearchParams();
+      body.append(F.code, code);
+      body.append(F.type, type);
+      body.append(F.name, name);
+      body.append(F.cls, prettyClass(cls));
+      if (F.context) body.append(F.context, context());
+      body.append(F.message, text || "—");
+
+      const btn = $("cf-submit"); btn.disabled = true; msg("Отправляем…");
+      try {
+        // Google Форма не отдаёт ответ сайту (no-cors), поэтому успехом считаем отсутствие сетевой ошибки
+        await fetch(`https://docs.google.com/forms/d/e/${C.formId}/formResponse`, { method: "POST", mode: "no-cors", body });
+      } catch {
+        btn.disabled = false; msg("Не удалось отправить — проверьте интернет и попробуйте ещё раз.", "err"); return;
+      }
+      const log = readJSON(LOG, []); log.push(Date.now()); store.set(LOG, JSON.stringify(log.slice(-20)));
+      const tickets = readJSON(TICKETS, []);
+      tickets.unshift({ code, type, date: Date.now(), cls, preview: text.slice(0, 80) });
+      store.set(TICKETS, JSON.stringify(tickets.slice(0, 20)));
+      btn.disabled = false;
+      $("cf-message").value = ""; $("cf-count").textContent = "0 / 1000";
+      msg(`Отправлено! Код обращения: ${code}. Сохраните его — по нему можно узнать ответ.`, "ok");
+      renderTickets();
+    }
+
+    function statusOf(code) {
+      const a = S.answers.find(x => x.code === code);
+      // строка с кодом появляется в «Ответах» сразу после отправки — пока нет статуса и ответа, обращение ждёт
+      if (!a || (!a.status && !a.answer)) return { status: "Получено, ещё не рассмотрено", answer: "", kind: "wait" };
+      const done = /(рассмотр|готов|выполн|одобр|закры|решен|ответ)/i.test(a.status) || (!a.status && a.answer);
+      const no = /(отклон|отказ)/i.test(a.status);
+      return { status: a.status || "Есть ответ", answer: a.answer, kind: no ? "no" : done ? "done" : "wait" };
+    }
+
+    function renderTickets(extra) {
+      const tickets = readJSON(TICKETS, []);
+      if (extra && !tickets.some(t => t.code === extra)) tickets.unshift({ code: extra, type: "Обращение", date: null, preview: "" });
+      $("ticket-list").innerHTML = tickets.length ? tickets.map(t => {
+        const st = statusOf(t.code);
+        const known = S.answers.some(a => a.code === t.code);
+        return `<li class="ticket ${st.kind}">
+          <div class="ticket__top"><b>${t.code}</b><span class="badge ${st.kind}">${esc(known || t.date ? st.status : "Код не найден")}</span></div>
+          <div class="ticket__meta">${esc(t.type)}${t.date ? " · " + new Date(t.date).toLocaleDateString("ru-RU") : ""}${t.preview ? " · " + esc(t.preview) : ""}</div>
+          ${st.answer ? `<p class="ticket__answer">${linkify(st.answer)}</p>` : ""}
+        </li>`;
+      }).join("") : `<li class="muted">Здесь появятся ваши обращения с этого устройства.</li>`;
+    }
+
+    function syncClass() {
+      if (S.current && !$("cf-cls").value) $("cf-cls").value = S.current;
+    }
+
+    function init() {
+      fillClasses();
+      setType("Вопрос");
+      if (!enabled) msg("Форма скоро заработает.", "");
+      $("cf-type").addEventListener("change", e => setType(e.target.value));
+      $("cf-month").addEventListener("change", fillCats);
+      $("cf-message").addEventListener("input", e => { $("cf-count").textContent = `${e.target.value.length} / 1000`; });
+      $("contact-form").addEventListener("submit", submit);
+      $("ticket-form").addEventListener("submit", async e => {
+        e.preventDefault();
+        const code = normCode($("ticket-code").value);
+        if (!/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)) { $("ticket-code").focus(); return; }
+        if (window.Quest?.ticket?.(code)) { $("ticket-code").value = ""; return; }
+        await loadAnswers(); renderFaq();
+        renderTickets(code);
+        $("ticket-code").value = "";
+      });
+      renderTickets();
+    }
+
+    // отправка в форму из других модулей (пасхалка); возвращает код обращения
+    async function send({ type, name, cls, context, message }) {
+      if (!enabled) throw new Error("Форма не подключена");
+      const code = newCode();
+      const body = new URLSearchParams();
+      body.append(F.code, code); body.append(F.type, type); body.append(F.name, name);
+      body.append(F.cls, prettyClass(cls)); if (F.context) body.append(F.context, context || ""); body.append(F.message, message || "—");
+      await fetch(`https://docs.google.com/forms/d/e/${C.formId}/formResponse`, { method: "POST", mode: "no-cors", body });
+      const tickets = readJSON(TICKETS, []);
+      tickets.unshift({ code, type, date: Date.now(), cls, preview: (message || "").slice(0, 80) });
+      store.set(TICKETS, JSON.stringify(tickets.slice(0, 20)));
+      renderTickets();
+      return code;
+    }
+
+    return { init, open, renderTickets, syncClass, newCode, send };
+  })();
 
   // ---------- render ----------
   function fillSelects() {
@@ -254,7 +477,7 @@
   function renderRewards() {
     const box = $("rewards");
     if (!S.rewards.length) {
-      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; return;
+      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; window.Quest?.decorateRewards?.(); return;
     }
     const bal = S.current ? S.classes[S.current].balance : null;
     box.innerHTML = S.rewards.map(r => {
@@ -267,6 +490,7 @@
         ${need ? `<span class="need">${need}</span>` : ""}
       </div>`;
     }).join("");
+    window.Quest?.decorateRewards?.();
   }
 
   function renderRating() {
@@ -277,12 +501,63 @@
       const c = S.classes[k];
       const place = S.tab === "all" ? c.rank : c.rankPar;
       const medal = place <= 3 ? `<span class="medal">${place}</span>` : place;
+      const d = S.tab === "all" ? c.delta : c.deltaPar;
+      const delta = !d ? `<span class="delta">–</span>` : d > 0
+        ? `<span class="delta up" title="Поднялся на ${d}">▲${d}</span>` : `<span class="delta down" title="Опустился на ${-d}">▼${-d}</span>`;
       return `<tr data-k="${k}" class="${k === S.current ? "me" : ""}"><td>${medal}</td><td>${prettyClass(k)}</td>
-        <td class="hide-sm">${esc(c.teacher)}</td><td>${c.year}</td><td class="hide-sm">${c.spent}</td><td>${c.balance}</td></tr>`;
+        <td class="hide-sm">${esc(c.teacher)}</td><td>${c.year}</td><td class="hide-sm">${S.months.length >= 2 ? delta : "–"}</td><td class="hide-sm">${c.spent}</td><td>${c.balance}</td></tr>`;
     }).join("");
+    window.Quest?.decorateRating?.();
   }
 
-  function renderAll() { renderClass(); renderRewards(); renderRating(); }
+  function renderLeaders() {
+    const m = S.months.find(x => x.name === S.month);
+    const sec = $("leaders-section");
+    const list = m ? Object.entries(m.classes).filter(([, v]) => v.total > 0).sort((a, b) => b[1].total - a[1].total) : [];
+    if (!list.length) { sec.hidden = true; return; }
+    sec.hidden = false;
+    $("leaders-month").textContent = S.month.toLowerCase();
+    // топ-3 с учётом равных баллов
+    const top = [];
+    for (const [k, v] of list) {
+      const place = 1 + list.filter(([, x]) => x.total > v.total).length;
+      if (place > 3) break;
+      top.push({ k, v, place });
+    }
+    $("podium").innerHTML = top.map(t => `<li class="p${t.place} ${t.k === S.current ? "me" : ""}" data-k="${t.k}">
+      <span class="podium__place">${t.place}</span><span class="podium__cls">${prettyClass(t.k)}</span>
+      <span class="podium__pts">${t.v.total} баллов</span></li>`).join("");
+    const pars = {};
+    for (const [k, v] of list) { const p = parallelOf(k); if (!pars[p] || pars[p][0].total === v.total) (pars[p] ||= []).push({ k, total: v.total }); }
+    $("par-leaders").innerHTML = Object.keys(pars).sort((a, b) => a - b).map(p =>
+      `<span class="chip"><b>${p} кл.</b> ${pars[p].map(x => prettyClass(x.k)).join(", ")} · ${pars[p][0].total}</span>`).join("");
+  }
+
+  function renderRules() {
+    const sec = $("rules-section");
+    sec.hidden = !S.rules.length;
+    syncNav();
+    if (!S.rules.length) return;
+    $("rules").innerHTML = S.rules.map(r => `<div class="rule">
+      <div class="rule__head"><h3>${esc(r.name)}</h3>${r.max ? `<span class="price">до ${esc(r.max)}</span>` : ""}</div>
+      <p>${linkify(r.desc)}</p></div>`).join("");
+  }
+
+  function renderFaq() {
+    const items = S.answers.filter(a => a.faq && a.question && a.answer);
+    $("faq-section").hidden = !items.length;
+    syncNav();
+    $("faq").innerHTML = items.map(a => `<details><summary>${esc(a.question)}</summary><p>${linkify(a.answer)}</p></details>`).join("");
+  }
+
+  function syncNav() {
+    document.querySelectorAll(".nav a[data-optional]").forEach(a => {
+      const sec = document.querySelector(a.getAttribute("href"));
+      a.hidden = !sec || sec.hidden;
+    });
+  }
+
+  function renderAll() { renderClass(); renderLeaders(); renderRewards(); renderRating(); Contact.syncClass(); }
 
   function selectClass(k) {
     S.current = k && S.classes[k] ? k : null;
@@ -291,13 +566,25 @@
     renderAll();
   }
 
+  // доступ для пасхалки (quest.js)
+  window.Rating = { S, CFG, fetchSheet, parseCSV, esc, prettyClass, normClass, store, renderAll, newCode: () => Contact.newCode(), send: (...a) => Contact.send(...a) };
+
   // ---------- init ----------
+  syncNav();
   loadAnnouncements();
   load().then(() => {
     fillSelects();
+    document.dispatchEvent(new Event("rating:ready"));
     $("status").textContent = "";
     $("class-select").addEventListener("change", e => selectClass(e.target.value));
-    $("month-select").addEventListener("change", e => { S.month = e.target.value; renderClass(); });
+    $("month-select").addEventListener("change", e => { S.month = e.target.value; renderClass(); renderLeaders(); });
+    $("podium").addEventListener("click", e => {
+      const li = e.target.closest("li[data-k]"); if (li) selectClass(li.dataset.k);
+    });
+    $("dispute-btn").addEventListener("click", () => Contact.open("Ошибка в баллах", { month: S.month }));
+    Contact.init();
+    fetchSheet(CFG.rulesSheet || "Правила").then(t => { S.rules = parseRules(parseCSV(t)); renderRules(); }).catch(() => renderRules());
+    loadAnswers().then(() => { renderFaq(); Contact.renderTickets(); });
     $("rating-tabs").addEventListener("click", e => {
       const b = e.target.closest("button"); if (!b) return;
       S.tab = b.dataset.tab;

@@ -19,6 +19,13 @@
         <p id="site-subtitle" class="muted-light"></p>
       </div>
     </div>
+    <nav class="wrap nav" aria-label="Разделы">
+      <a href="#rating-section">Рейтинг</a>
+      <a href="#rewards-section">Награды</a>
+      <a href="#rules-section" data-optional>Правила</a>
+      <a href="#faq-section" data-optional>Вопросы</a>
+      <a href="#contact">Связаться</a>
+    </nav>
   </header>
 
   <main class="wrap">
@@ -60,6 +67,7 @@
           <p class="teacher muted" id="teacher"></p>
           <ul class="cats" id="cats"></ul>
           <p class="total">Итого за месяц: <b id="month-total">0</b></p>
+          <button type="button" class="linkbtn" id="dispute-btn">Нашли ошибку в баллах?</button>
         </article>
         <article class="card">
           <h2>По месяцам</h2>
@@ -68,34 +76,116 @@
       </div>
     </section>
 
+    <section class="card" id="leaders-section" hidden>
+      <div class="section-head">
+        <h2>Лидеры: <span id="leaders-month"></span></h2>
+        <p class="muted">Больше всего баллов за месяц</p>
+      </div>
+      <ol class="podium" id="podium"></ol>
+      <div class="par-leaders" id="par-leaders"></div>
+    </section>
+
     <section class="card" id="rewards-section">
       <div class="section-head">
         <h2>Награды</h2>
         <p class="muted">Баллы копятся весь год. Награду выбирает класс, покупку подтверждает самоуправление.</p>
+        <p class="note">Заявки на получение награды принимаются в кабинете <b>2/217</b> — у Анастасии Владимировны.</p>
       </div>
       <div class="rewards" id="rewards"><p class="muted">Загрузка…</p></div>
     </section>
 
-    <section class="card">
+    <section class="card" id="rating-section">
       <div class="section-head section-head--row">
         <h2>Рейтинг классов за год</h2>
         <div class="tabs" id="rating-tabs" role="tablist"></div>
       </div>
       <div class="table-wrap">
         <table class="rating">
-          <thead><tr><th>#</th><th>Класс</th><th class="hide-sm">Кл. руководитель</th><th>За год</th><th class="hide-sm">Потрачено</th><th>Остаток</th></tr></thead>
+          <thead><tr><th>#</th><th>Класс</th><th class="hide-sm">Кл. руководитель</th><th>За год</th><th class="hide-sm" title="Изменение места за последний месяц">±</th><th class="hide-sm">Потрачено</th><th>Остаток</th></tr></thead>
           <tbody id="rating-body"></tbody>
         </table>
       </div>
     </section>
 
+    <section class="card" id="rules-section" hidden>
+      <div class="section-head">
+        <h2>Как заработать баллы</h2>
+        <p class="muted">Критерии, по которым самоуправление начисляет баллы каждый месяц</p>
+      </div>
+      <div class="rules" id="rules"></div>
+    </section>
+
+    <section class="card" id="faq-section" hidden>
+      <div class="section-head">
+        <h2>Вопросы и ответы</h2>
+      </div>
+      <div class="faq" id="faq"></div>
+    </section>
+
+    <section class="card" id="contact">
+      <div class="section-head">
+        <h2>Связаться с самоуправлением</h2>
+        <p class="muted">Задайте вопрос или сообщите об ошибке в баллах. Ответ появится здесь же по коду обращения.</p>
+      </div>
+      <div class="contact">
+        <form id="contact-form" class="cform" novalidate>
+          <div class="cform__row">
+            <label>Тип обращения
+              <select name="type" id="cf-type">
+                <option>Вопрос</option>
+                <option>Ошибка в баллах</option>
+              </select>
+            </label>
+          </div>
+          <div class="cform__row cform__row--2">
+            <label>Фамилия и имя
+              <input name="name" id="cf-name" autocomplete="name" maxlength="60" required placeholder="Иванов Иван">
+            </label>
+            <label>Класс
+              <select name="cls" id="cf-cls" required><option value="">—</option></select>
+            </label>
+          </div>
+          <div class="cform__row cform__row--2" id="cf-error-fields" hidden>
+            <label>Месяц
+              <select id="cf-month"></select>
+            </label>
+            <label>Категория
+              <select id="cf-cat"><option value="">— любая / несколько —</option></select>
+            </label>
+          </div>
+          <div class="cform__row">
+            <label>Сообщение
+              <textarea name="message" id="cf-message" rows="4" maxlength="1000" required placeholder="Опишите вопрос или ситуацию"></textarea>
+            </label>
+            <span class="hint counter" id="cf-count">0 / 1000</span>
+          </div>
+          <label class="hp" aria-hidden="true">Сайт <input name="website" tabindex="-1" autocomplete="off"></label>
+          <div class="cform__actions">
+            <button type="submit" class="btn" id="cf-submit">Отправить</button>
+            <span class="cform__msg" id="cf-msg" role="status"></span>
+          </div>
+          <p class="hint">Фамилия, имя и текст обращения видят только члены самоуправления. На сайте публикуется только ответ по коду.</p>
+        </form>
+
+        <aside class="tickets">
+          <h3>Мои обращения</h3>
+          <form id="ticket-form" class="ticket-form">
+            <input id="ticket-code" placeholder="Код обращения" maxlength="9" autocomplete="off" aria-label="Код обращения">
+            <button class="btn btn--ghost" type="submit">Проверить</button>
+          </form>
+          <ul class="ticket-list" id="ticket-list"></ul>
+        </aside>
+      </div>
+    </section>
+
     <footer class="foot muted">
       <span id="updated"></span>
-      <span>Данные берутся из «Таблицы баллов классов». Нашли ошибку — напишите в самоуправление.</span>
+      <span>Данные берутся из «Таблицы баллов классов». Нашли ошибку — <a href="#contact">напишите в самоуправление</a>.</span>
     </footer>
   </main>
 
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <script src="quest.js"></script>
 </body>
 </html>
