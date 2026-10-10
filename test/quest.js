@@ -4,7 +4,7 @@
 // ======================================================================
 (() => {
   "use strict";
-  const DATA = {"first":{"text":"Пасхалка найдена! Это квест из пяти шагов. Первый, кто пройдёт его до конца, принесёт своему классу 7 баллов.\n\nШаг 1. В разных частях сайта загорелись золотые буквы. Прочитай их сверху вниз — это первый ответ.","fx":{"type":"letters","letters":[["#site-title","В"],["label[for=class-select]","М"],["#rewards-section h2","Е"],["#rating-section h2","С"],["#contact h2","Т"],[".foot","Е"]]}},"locked":["slUJd+QRI03wHOYt/mGK1htU3VfsHeD5XhQgeF6dKBjxsVmgGAR6n3youeBN+6r6xpUvqTz4eMoF1rCD8tIKgzENYBFthdEU5jhNefHyRNEegHS2cMqe2KuRQZN4dZQCTNPyvt1p5D0F4OsFo+h/eSv7d/nTF+JGejWGVqeekkMysCsrvFkpirkwl3bk9l07L8jTGwO6zO2ss+6fEBFlfuapaklR8PhwHvSKY0QF1hDMtNagEyc8l3dGTHtAszqJlLKdR62Kz5vh3WAA7Tf1JTFzeBfHcm7jnyyvPK0NpunXL+F9NclWkHbNdl5l3ELWMwp52ywF6iQuFtGuVz8XZ54lLd+ocrB+9lJS8pUSVgU=","UklNFVEp0dpGte+fyQ/JiqlA1LRpM9KFVuwlypIxIquVD5nKyyhkkHlwHWwb53Mx8WAvJW5lcH/lENwk0migaqhGNefHSMwZ+pxOgmoW83wIaCYReo/zOetVu5RMvqPz7nBkS5eQgwoK1tmLusfD/svgfDMlz9k3VUOrVJFrK5QEDjGrd4YzYXyHyzLIDhdvylldhX29A0foZ6PYpOngmjVZjN9A+rNFIWwxVs1c1VWj4OpD7ZgQXIIKLXrBtxLk+foEEAsQxXJ7adjUfVCWLXmrUW+B2r+EVdjax6iQDJoHbEfcjhvaGL4lvkz5tLQxP/Qwrg23AKIcMCQlByHppomf0zwh82HDhaaPHxAtXDg9a1ycQRFFGqzg","ASEuDsjdFuEVEmI/tr0aHU9miqcD75NlOfQVo6nHP0OdAW9VDQWOEGlpRe1IsyXFtDZkCP9iP4vBuE9BTgmRU/hv+oTidd/1yY561wTGVr2h5KVNcx9tEsR3C8uGtAbML5q4qOAWeHjKzl6rXdP3rDWBLvoV6Mn0ZN1Q/F3t5iq2bu6trYcBu3/O+kadWDXKmVCKMa34kpOHmye4PJ7xVkxRwEnEEcHc1pQxIUjrY6zJNiMfgfsfbWkg+0dA37hwlXtcG0dRp6U=","jeUzjfVzG69HK1irBm/38ahOi3foXejvoLAwTJahLBdyltDci5hCZsov/WC5yMh95+DN3WoB0w47l/hasCDcIA5fyKyDD3xv89VQeOLsw4JqsBkWLxbsy/1RSUZLr+aRpiFPPkRLjb13J+kUNxA+aVyazxjwBxm4E0inmso4wluoamKR5DncVc8dmF/bHCi6VwlXO68BdLk1tgdkavfiRpVeLP7534ZimqXSlFsVlEGuKE25XJs6HohTsiHLTaMuPpfHmRzQGgCTWzOon/kb6H1IEbuxDYREliU+5m0B4ogfKT/HR0mu5Zd+F4681ERNc+w0+cefo2Hj0TF7gpgj0iNLxR+OmRLYwBC1SQ845uVIiftk1tbKAarZYWacQtLAiSKzoSL9H6QEbDkX2GdOZQpnl/DFChUM3rfR4EK4594EBjuQuZkemChQCVP+OUqidZXyl4tMdIH2YlFnEH9FJtE=","sgcgubEKjIdAB+/MYE1/9O9fBJbE8KGSqLfWuQRj+uYGJLt/uV9W7ozF/j82C61ZyHMU27L9QrH1BQhLNfDQN/o2J/uU9zftkhDfLtlqXQm4phBedqN+ARzjh6ED3ZubkMNAs76zXRTghivPJjsVdev3HVSAK57WFtHs2t8gqeZVji2CwAyl+oHKRmpi/hXPUS5aAfq0Shanm+NdNJEdO6ool9YTbSfLey61uNSrPxa47iyCTKYpWOv3bNIFKy08pR39xnGAsVHewf6sNslCYMo3YZOipU4vz1TrQTHiIPhjiBpG+g=="]};
+  const DATA = {"first":{"text":"Пасхалка найдена. Пять шагов. Первый, кто дойдёт до конца, принесёт своему классу 7 баллов.\n\nШаг 1. Сайт уже не тот, что минуту назад.","fx":{"type":"letters","letters":[["#site-title","В"],["label[for=class-select]","М"],["#rewards-section h2","Е"],["#rating-section h2","С"],["#contact h2","Т"],[".foot","Е"]]}},"locked":["6g9jkNqlDoAFSnm6ok6tLn+ymrvBys6dTED1txc0zb0cU1Afe7qPLjhspKqiHwbWimfYkfWjCiy5OeK9Ei8eI6gENRmX4yX0Lrgb0kEDTXPIMPx4iA89ZxbK6jYiNEZl1RtPuLGtQ1xtc9BZbekmPHeDwBJd/tCPKl0Zw4XdCG0HUaxuhvnOiDRig0AbX+cQ+EqsfsyyNCJp6Ld8kA==","GOKqQoPqFn0gWzYbSpvjxVbp3ZZYchjklJX9BnXqXvh6h3ytPp+P+EP5MVy1K1fIFIRUGv3XesuHhxErUdYa3ebG3Do45Mu4dKfFaotoDqjuIPUfqivpiY/b69Y+sPsGj3n3cGx2hDMKq53GdrPl7Mbln5aFcd5Y8aJYnYPMo1qjpjzhXDsNJj3fbKLbL6a0BGNa0dar6Le9l3xR/ioYwOZGkafAPIAJGCFTwx03a2ZrLw8pDtcEbmn4sM5BXWmw/OXVBPCpCzzq080kDiDq3BQFEgmoww==","Ne03vokbGfAU1tb4dvmk8F4WrFUzz/tC+neuykszINm6Ibpk5Xc+aL7wR5QwLZ+zfLvC9zxMeMFbAyVF73GChQZNzH7OJW7Pr3MB+LDdG8iRzKLMJzUO39kk7ADCrfHcOLaDeMIHNJgZy0rCnKgZznu3NpVXsOxNR7egzt8JzapnV1U=","6g2iSz9VkftkHkcWeNXf27smYIhZ0na7WXDP1kOwdTnW6lMLo/I6JYR/iK3YyI081N6QOaMdkHNWYUdkKcJaL/M5zxT1wdRbqOir4RdqzgQT67TOymHr+76449dcTLha+qp8OXvsKNlDKU0jvMmAw41gRW+fznH8xKT0Gj6Huz+kAcmGPNuGbUNif3vrQwCdBVRDT9dH+znS6l/4TsI1UDydFdTmw6rwOGabMKv9Y8P1Nq1fqS8F1WkiYMkyePSp1dU=","D0DZ46ER7WEPp7ispS8oKcklpeEa+n/9wRJNxVoZAlG1ZxyroL4K+G2iLa6gtRYkh1itgdFXuSVRQNcOW1qnu8AKKjlho07GMSJVapBTcUQWGrkb2ODcSYY+2BNYUgA00rpeOxnu3dXnFrlSKhFjIq/hSwad3Dv/wgTH5oRsePRURh2bsPoBVRKT8KUUxQuFsk6+q7oT+5ZtjLiI4z+cpblhGyhegjfgWW7fLd8ewhs6OlARmrLUBOr5TK8li9i6b0RqlxOHToEH1wmhJvgnXQznChmYu1IIU2GQwSztCnXUtjaiWw=="]};
   const LS = "quest16";
   const TOTAL = 5;
   const norm = (s) => String(s || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^A-ZА-Я0-9]/g, "");
@@ -43,8 +43,16 @@
   function decorateRating() {
     document.querySelectorAll("#rating-body .q-fx").forEach(e => e.remove());
     const f = active() && fx("fakeRow"); if (!f) return;
-    document.getElementById("rating-body").insertAdjacentHTML("beforeend",
-      `<tr class="q-fx qrow"><td>?</td><td>${R.esc(f.cls)}</td><td class="hide-sm">${R.esc(f.teacher)}</td><td>${f.year}</td><td class="hide-sm">✦</td><td class="hide-sm">0</td><td>${f.year}</td></tr>`);
+    // «чужой» класс прячется в середине таблицы и выглядит как обычная строка
+    const body = document.getElementById("rating-body");
+    const rows = [...body.children];
+    const ref = rows[Math.floor(rows.length / 2)] || null;
+    const pts = ref ? ref.children[3].textContent : "0";
+    const place = ref ? ref.children[0].textContent : "1";
+    const tr = document.createElement("tr");
+    tr.className = "q-fx";
+    tr.innerHTML = `<td>${R.esc(place)}</td><td>${R.esc(f.cls)}</td><td class="hide-sm">${R.esc(f.teacher)}</td><td>${R.esc(pts)}</td><td class="hide-sm"><span class="delta">–</span></td><td class="hide-sm">0</td><td>${R.esc(pts)}</td>`;
+    body.insertBefore(tr, ref);
   }
   function decorateRewards() {
     document.querySelectorAll("#rewards .q-fx").forEach(e => e.remove());
@@ -52,7 +60,7 @@
     const box = document.getElementById("rewards");
     box.querySelector(":scope > p.muted")?.remove();
     box.insertAdjacentHTML("beforeend",
-      `<div class="reward q-fx qreward"><span class="price">${R.esc(f.price)} баллов</span><h3>${R.esc(f.name)}</h3><p>${R.esc(f.desc)}</p></div>`);
+      `<div class="reward q-fx"><span class="price">${R.esc(f.price)} баллов</span><h3>${R.esc(f.name)}</h3><p>${R.esc(f.desc)}</p></div>`);
   }
   function ticket(code) {
     const f = active() && fx("ticket");

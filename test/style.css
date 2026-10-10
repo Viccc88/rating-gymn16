@@ -209,12 +209,7 @@ input:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1p
 
 /* пасхалка-квест */
 .seal { cursor: default; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
-.qletter { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; margin-left: 4px; vertical-align: middle; font-size: .8rem; font-weight: 800; color: #5a3b00; background: radial-gradient(circle at 35% 30%, #fff3b0, #f2c230 60%, #c99510); border-radius: 50%; box-shadow: 0 0 0 2px rgba(242,194,48,.35), 0 0 14px rgba(242,194,48,.8); animation: qglow 2.4s ease-in-out infinite; }
-@keyframes qglow { 50% { box-shadow: 0 0 0 4px rgba(242,194,48,.2), 0 0 22px rgba(242,194,48,1); } }
-@media (prefers-reduced-motion: reduce) { .qletter { animation: none; } }
-.rating tr.qrow td { background: #fff8e6; font-style: italic; color: #8a5a00; }
-.reward.qreward { border-color: #f0c96a; background: #fff8e6; }
-.reward.qreward p { letter-spacing: .12em; font-weight: 700; color: #8a5a00; }
+.qletter { display: inline-block; margin-left: 4px; font-size: .75em; font-weight: 800; color: #d9a400; vertical-align: super; }
 dialog.quest { border: 0; border-radius: 18px; padding: 24px; width: min(460px, calc(100vw - 32px)); color: var(--ink); box-shadow: 0 20px 60px rgba(10,20,60,.35); }
 dialog.quest::backdrop { background: rgba(15,25,70,.55); backdrop-filter: blur(2px); }
 .quest h2 { color: var(--blue-dark); margin-bottom: 8px; }
