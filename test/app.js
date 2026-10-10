@@ -186,7 +186,8 @@
     if (cD < 0) return [];
     let cM = head.findIndex(c => /макс/.test(c));
     if (cM < 0) cM = head.findIndex((c, i) => i !== cD && /^балл/.test(c));
-    return rows.slice(h + 1).filter(r => r[cN]).map(r => ({ name: r[cN], desc: r[cD] || "", max: cM >= 0 ? r[cM] : "" }));
+    // строки без описания не показываем — их можно заполнить позже
+    return rows.slice(h + 1).filter(r => r[cN] && r[cD]).map(r => ({ name: r[cN], desc: r[cD], max: cM >= 0 ? r[cM] : "" }));
   }
 
   // ---------- ответы (лист «Ответы»: Код | Статус | Ответ | Вопрос для FAQ | В FAQ) ----------
@@ -281,8 +282,6 @@
     function setType(type) {
       $("cf-type").value = type;
       $("cf-error-fields").hidden = type !== "Ошибка в баллах";
-      $("cf-reward-fields").hidden = type !== "Заявка на награду";
-      if (type === "Заявка на награду") fillRewards();
       if (type === "Ошибка в баллах") fillCats();
     }
 
@@ -303,17 +302,6 @@
       $("cf-cat").value = keep;
     }
 
-    function fillRewards(selected) {
-      const k = $("cf-cls").value;
-      const bal = k && S.classes[k] ? S.classes[k].balance : null;
-      $("cf-reward").innerHTML = S.rewards.map(r => {
-        const lack = bal !== null && bal < r.price;
-        return `<option value="${esc(r.name)}" ${lack ? "disabled" : ""}>${esc(r.name)} — ${r.price} б.${lack ? " (не хватает)" : ""}</option>`;
-      }).join("") || `<option value="">Список наград пока пуст</option>`;
-      if (selected) $("cf-reward").value = selected;
-      $("cf-reward-hint").textContent = (bal !== null ? `Остаток класса: ${bal} баллов. ` : "") +
-        "Покупку лично подтверждает староста класса. Баллы списываются только после подтверждения.";
-    }
 
     function msg(text, kind) { const m = $("cf-msg"); m.textContent = text; m.className = "cform__msg " + (kind || ""); }
 
@@ -321,7 +309,6 @@
       setType(type);
       if (S.current) $("cf-cls").value = S.current;
       if (opts.month) { $("cf-month").value = opts.month; fillCats(); }
-      if (type === "Заявка на награду") fillRewards(opts.reward);
       document.getElementById("contact").scrollIntoView({ behavior: "smooth", block: "start" });
       setTimeout(() => $(S.current ? "cf-name" : "cf-cls").focus({ preventScroll: true }), 400);
     }
@@ -329,11 +316,6 @@
     function context() {
       const t = $("cf-type").value;
       if (t === "Ошибка в баллах") return `Месяц: ${$("cf-month").value}` + ($("cf-cat").value ? `; категория: ${$("cf-cat").value}` : "");
-      if (t === "Заявка на награду") {
-        const r = S.rewards.find(x => x.name === $("cf-reward").value);
-        const k = $("cf-cls").value;
-        return r ? `Награда: ${r.name} (${r.price} б.); остаток класса: ${S.classes[k]?.balance ?? "?"}` : "";
-      }
       return "";
     }
 
@@ -348,8 +330,7 @@
       const type = $("cf-type").value;
       if (!/^[А-ЯЁа-яёA-Za-z-]{2,}\s[А-ЯЁа-яёA-Za-z-]{2,}/.test(name)) { msg("Укажите фамилию и имя.", "err"); $("cf-name").focus(); return; }
       if (!cls) { msg("Выберите класс.", "err"); $("cf-cls").focus(); return; }
-      if (type === "Заявка на награду" && !$("cf-reward").value) { msg("Выберите награду, на которую хватает баллов.", "err"); return; }
-      if (text.length < 10 && type !== "Заявка на награду") { msg("Опишите подробнее — хотя бы 10 символов.", "err"); $("cf-message").focus(); return; }
+      if (text.length < 10) { msg("Опишите подробнее — хотя бы 10 символов.", "err"); $("cf-message").focus(); return; }
       const wait = limitLeft();
       if (wait) { msg(wait, "err"); return; }
 
@@ -371,7 +352,7 @@
       }
       const log = readJSON(LOG, []); log.push(Date.now()); store.set(LOG, JSON.stringify(log.slice(-20)));
       const tickets = readJSON(TICKETS, []);
-      tickets.unshift({ code, type, date: Date.now(), cls, preview: (type === "Заявка на награду" ? $("cf-reward").value : text).slice(0, 80) });
+      tickets.unshift({ code, type, date: Date.now(), cls, preview: text.slice(0, 80) });
       store.set(TICKETS, JSON.stringify(tickets.slice(0, 20)));
       btn.disabled = false;
       $("cf-message").value = ""; $("cf-count").textContent = "0 / 1000";
@@ -403,7 +384,6 @@
 
     function syncClass() {
       if (S.current && !$("cf-cls").value) $("cf-cls").value = S.current;
-      if ($("cf-type").value === "Заявка на награду") fillRewards($("cf-reward").value);
     }
 
     function init() {
@@ -412,7 +392,6 @@
       if (!enabled) msg("Форма скоро заработает.", "");
       $("cf-type").addEventListener("change", e => setType(e.target.value));
       $("cf-month").addEventListener("change", fillCats);
-      $("cf-cls").addEventListener("change", () => { if ($("cf-type").value === "Заявка на награду") fillRewards($("cf-reward").value); });
       $("cf-message").addEventListener("input", e => { $("cf-count").textContent = `${e.target.value.length} / 1000`; });
       $("contact-form").addEventListener("submit", submit);
       $("ticket-form").addEventListener("submit", async e => {
@@ -492,7 +471,6 @@
         <h3>${esc(r.name)}</h3>
         ${r.desc ? `<p>${esc(r.desc)}</p>` : "<p></p>"}
         ${need ? `<span class="need">${need}</span>` : ""}
-        ${can ? `<button type="button" class="btn btn--small" data-reward="${esc(r.name)}">Подать заявку</button>` : ""}
       </div>`;
     }).join("");
   }
@@ -579,9 +557,6 @@
     $("month-select").addEventListener("change", e => { S.month = e.target.value; renderClass(); renderLeaders(); });
     $("podium").addEventListener("click", e => {
       const li = e.target.closest("li[data-k]"); if (li) selectClass(li.dataset.k);
-    });
-    $("rewards").addEventListener("click", e => {
-      const b = e.target.closest("button[data-reward]"); if (b) Contact.open("Заявка на награду", { reward: b.dataset.reward });
     });
     $("dispute-btn").addEventListener("click", () => Contact.open("Ошибка в баллах", { month: S.month }));
     Contact.init();

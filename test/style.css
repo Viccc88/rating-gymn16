@@ -28,7 +28,7 @@ h2 { font-size: 1.2rem; color: var(--blue-dark); }
 .seal { width: 56px; height: 56px; flex: none; color: #fff; opacity: .95; }
 .top h1 { font-size: 1.7rem; letter-spacing: .01em; }
 
-main { margin-top: -40px; padding-bottom: 32px; display: grid; gap: 16px; }
+main { margin-top: -40px; padding-bottom: 32px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: 0 1px 2px rgba(20,30,70,.06), 0 4px 16px rgba(20,30,70,.05); }
 
 /* picker */
@@ -164,7 +164,7 @@ section[id] { scroll-margin-top: 12px; }
 .faq p { margin: 8px 0 0; white-space: pre-line; }
 
 /* обращения */
-.contact { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; align-items: start; }
+.contact { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
 .cform { display: grid; gap: 12px; }
 .cform label { display: grid; gap: 4px; font-size: .88rem; font-weight: 600; color: var(--blue-dark); }
 .cform__row--2 { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
@@ -184,13 +184,14 @@ input:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1p
 .tickets { background: #f7f8fd; border-radius: 12px; padding: 14px; }
 .tickets h3 { margin: 0 0 10px; font-size: 1rem; color: var(--blue-dark); }
 .ticket-form { display: flex; gap: 8px; margin-bottom: 12px; }
-.ticket-form input { text-transform: uppercase; }
+.ticket-form input { text-transform: uppercase; flex: 1 1 0; width: auto; }
+.ticket-form input::placeholder { text-transform: none; }
 .ticket-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .ticket { background: #fff; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px 12px; }
 .ticket.done { border-color: #9fd3b6; }
 .ticket.no { border-color: #e7b0b0; }
 .ticket__top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
-.ticket__top b { font-family: ui-monospace, Consolas, monospace; letter-spacing: .04em; }
+.ticket__top b { white-space: nowrap; font-family: ui-monospace, Consolas, monospace; letter-spacing: .04em; }
 .ticket__meta { font-size: .8rem; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
 .ticket__answer { margin: 8px 0 0; font-size: .9rem; white-space: pre-line; }
 .badge { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: var(--blue-soft); color: var(--blue-dark); white-space: nowrap; }
@@ -198,8 +199,10 @@ input:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1p
 .badge.no { background: #fdecec; color: #8a1c1c; }
 
 @media (max-width: 760px) {
-  .contact { grid-template-columns: 1fr; }
+  .contact { grid-template-columns: minmax(0, 1fr); }
   .podium { grid-template-columns: 1fr; }
   .cform__row--2 { grid-template-columns: 1fr; }
   .nav { margin-top: 12px; }
 }
+
+.note { margin: 8px 0 0; padding: 8px 12px; background: var(--blue-soft); color: var(--blue-dark); border-radius: 10px; font-size: .92rem; }
