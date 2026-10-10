@@ -206,3 +206,27 @@ input:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1p
 }
 
 .note { margin: 8px 0 0; padding: 8px 12px; background: var(--blue-soft); color: var(--blue-dark); border-radius: 10px; font-size: .92rem; }
+
+/* пасхалка-квест */
+.seal { cursor: default; touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; }
+.qletter { display: inline-grid; place-items: center; width: 1.5em; height: 1.5em; margin-left: 4px; vertical-align: middle; font-size: .8rem; font-weight: 800; color: #5a3b00; background: radial-gradient(circle at 35% 30%, #fff3b0, #f2c230 60%, #c99510); border-radius: 50%; box-shadow: 0 0 0 2px rgba(242,194,48,.35), 0 0 14px rgba(242,194,48,.8); animation: qglow 2.4s ease-in-out infinite; }
+@keyframes qglow { 50% { box-shadow: 0 0 0 4px rgba(242,194,48,.2), 0 0 22px rgba(242,194,48,1); } }
+@media (prefers-reduced-motion: reduce) { .qletter { animation: none; } }
+.rating tr.qrow td { background: #fff8e6; font-style: italic; color: #8a5a00; }
+.reward.qreward { border-color: #f0c96a; background: #fff8e6; }
+.reward.qreward p { letter-spacing: .12em; font-weight: 700; color: #8a5a00; }
+dialog.quest { border: 0; border-radius: 18px; padding: 24px; width: min(460px, calc(100vw - 32px)); color: var(--ink); box-shadow: 0 20px 60px rgba(10,20,60,.35); }
+dialog.quest::backdrop { background: rgba(15,25,70,.55); backdrop-filter: blur(2px); }
+.quest h2 { color: var(--blue-dark); margin-bottom: 8px; }
+.quest__star { font-size: 2rem; color: #e0a800; line-height: 1; margin-bottom: 4px; }
+.quest__x { position: absolute; top: 10px; right: 12px; border: 0; background: none; font-size: 1.6rem; line-height: 1; color: var(--muted); cursor: pointer; }
+.quest__text { white-space: pre-line; }
+.quest__bar { height: 6px; background: var(--blue-soft); border-radius: 4px; overflow: hidden; margin: 6px 0 12px; }
+.quest__bar span { display: block; height: 100%; background: linear-gradient(90deg, #f2c230, #e0a800); }
+.quest__form { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.quest__form input, .quest__form select { flex: 1 1 160px; }
+.quest__msg { margin: 10px 0 0; font-weight: 600; }
+.quest__msg.ok { color: var(--ok); }
+.quest__msg.err { color: #b23a3a; }
+.quest__hint { font-size: .8rem; margin-top: 14px; }
+.mono { font-family: ui-monospace, Consolas, monospace; }

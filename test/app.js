@@ -399,6 +399,7 @@
         e.preventDefault();
         const code = normCode($("ticket-code").value);
         if (!/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)) { $("ticket-code").focus(); return; }
+        if (window.Quest?.ticket?.(code)) { $("ticket-code").value = ""; return; }
         await loadAnswers(); renderFaq();
         renderTickets(code);
         $("ticket-code").value = "";
@@ -406,7 +407,22 @@
       renderTickets();
     }
 
-    return { init, open, renderTickets, syncClass };
+    // отправка в форму из других модулей (пасхалка); возвращает код обращения
+    async function send({ type, name, cls, context, message }) {
+      if (!enabled) throw new Error("Форма не подключена");
+      const code = newCode();
+      const body = new URLSearchParams();
+      body.append(F.code, code); body.append(F.type, type); body.append(F.name, name);
+      body.append(F.cls, prettyClass(cls)); if (F.context) body.append(F.context, context || ""); body.append(F.message, message || "—");
+      await fetch(`https://docs.google.com/forms/d/e/${C.formId}/formResponse`, { method: "POST", mode: "no-cors", body });
+      const tickets = readJSON(TICKETS, []);
+      tickets.unshift({ code, type, date: Date.now(), cls, preview: (message || "").slice(0, 80) });
+      store.set(TICKETS, JSON.stringify(tickets.slice(0, 20)));
+      renderTickets();
+      return code;
+    }
+
+    return { init, open, renderTickets, syncClass, newCode, send };
   })();
 
   // ---------- render ----------
@@ -461,7 +477,7 @@
   function renderRewards() {
     const box = $("rewards");
     if (!S.rewards.length) {
-      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; return;
+      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; window.Quest?.decorateRewards?.(); return;
     }
     const bal = S.current ? S.classes[S.current].balance : null;
     box.innerHTML = S.rewards.map(r => {
@@ -474,6 +490,7 @@
         ${need ? `<span class="need">${need}</span>` : ""}
       </div>`;
     }).join("");
+    window.Quest?.decorateRewards?.();
   }
 
   function renderRating() {
@@ -490,6 +507,7 @@
       return `<tr data-k="${k}" class="${k === S.current ? "me" : ""}"><td>${medal}</td><td>${prettyClass(k)}</td>
         <td class="hide-sm">${esc(c.teacher)}</td><td>${c.year}</td><td class="hide-sm">${S.months.length >= 2 ? delta : "–"}</td><td class="hide-sm">${c.spent}</td><td>${c.balance}</td></tr>`;
     }).join("");
+    window.Quest?.decorateRating?.();
   }
 
   function renderLeaders() {
@@ -548,11 +566,15 @@
     renderAll();
   }
 
+  // доступ для пасхалки (quest.js)
+  window.Rating = { S, CFG, fetchSheet, parseCSV, esc, prettyClass, normClass, store, renderAll, newCode: () => Contact.newCode(), send: (...a) => Contact.send(...a) };
+
   // ---------- init ----------
   syncNav();
   loadAnnouncements();
   load().then(() => {
     fillSelects();
+    document.dispatchEvent(new Event("rating:ready"));
     $("status").textContent = "";
     $("class-select").addEventListener("change", e => selectClass(e.target.value));
     $("month-select").addEventListener("change", e => { S.month = e.target.value; renderClass(); renderLeaders(); });
