@@ -92,7 +92,19 @@ a { color: inherit; text-underline-offset: 3px; }
 /* ---------- основная часть ---------- */
 main { position: relative; padding-bottom: 48px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 56px; }
 main.wrap { margin-top: 32px; }
-main > .picker, main > .status, main > .ann { margin-bottom: -28px; }
+main > .picker, main > .status, main > .ann, main > .tg { margin-bottom: -28px; }
+
+/* ---------- Telegram-канал совета ---------- */
+.tg { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border: 2px solid var(--ink); border-radius: 10px; background: var(--paper); color: var(--ink); text-decoration: none; transition: background .25s var(--ease), color .25s; }
+.tg__logo { width: 64px; height: 64px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: #fff; object-fit: cover; }
+.tg__text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tg__text b { font: 700 1.05rem/1.25 var(--display); }
+.tg__text span { font-size: .9rem; color: var(--muted); transition: color .25s; }
+.tg__btn { flex: none; display: inline-flex; align-items: center; gap: 8px; background: var(--ink); color: #fff; font-weight: 700; padding: 11px 18px; border-radius: 8px; transition: background .25s, color .25s, transform .25s var(--pop); }
+.tg__btn svg { width: 18px; height: 18px; fill: currentColor; }
+.tg:hover, .tg:focus-visible { background: var(--ink); color: #fff; }
+.tg:hover .tg__text span, .tg:focus-visible .tg__text span { color: #bdbdb6; }
+.tg:hover .tg__btn, .tg:focus-visible .tg__btn { background: var(--gold); color: var(--ink); transform: translateX(3px); }
 
 .picker { scroll-margin-top: 16px; background: var(--paper); border: 2px solid var(--ink); border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; box-shadow: 6px 6px 0 var(--ink); }
 .picker label { font: 700 1.05rem/1.2 var(--display); }
@@ -287,6 +299,12 @@ textarea { resize: vertical; }
   .nav::-webkit-scrollbar { display: none; }
   .nav a { font-size: .82rem; white-space: nowrap; padding: 8px 0; }
   .picker { padding: 14px; }
+  .tg { flex-wrap: wrap; gap: 12px; padding: 14px; }
+  .tg__logo { width: 52px; height: 52px; }
+  .tg__text { flex-basis: calc(100% - 64px); }
+  .tg__text b { font-size: .95rem; }
+  .tg__text span { font-size: .85rem; }
+  .tg__btn { flex: 1 1 100%; justify-content: center; }
   .picker__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); flex: 1 1 100%; }
   .picker select { padding-left: 10px; padding-right: 6px; }
   #month-select { flex: none; }
