@@ -3,33 +3,43 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Рейтинг классов · Гимназия №16</title>
+  <title>Рейтинг классов — Гимназия №16</title>
   <meta name="description" content="Баллы классов, рейтинг и награды ученического самоуправления гимназии №16 г. Тюмени">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='none' stroke='%232f45a0' stroke-width='3'/%3E%3Cpath d='M16 8l2.4 5 5.4.6-4 3.7 1.1 5.3L16 20l-4.9 2.6 1.1-5.3-4-3.7 5.4-.6z' fill='%232f45a0'/%3E%3C/svg%3E">
+  <meta name="theme-color" content="#000000">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16'/%3E%3Cpath d='M16 7l2.6 5.4 5.9.7-4.4 4 1.2 5.8L16 20l-5.3 2.9 1.2-5.8-4.4-4 5.9-.7z' fill='%23d8b25a'/%3E%3C/svg%3E">
+  <link rel="preload" href="fonts/unbounded-cyrillic-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
-    <div class="wrap top__inner">
+    <div class="top__bg" aria-hidden="true"></div>
+    <div class="wrap top__bar">
       <div class="seal" aria-hidden="true">
-        <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="29" fill="none" stroke="currentColor" stroke-width="3"/><circle cx="32" cy="32" r="22" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M32 18l3.5 7.2 7.9.9-5.8 5.4 1.6 7.8L32 35.4l-7.2 3.9 1.6-7.8-5.8-5.4 7.9-.9z" fill="currentColor"/></svg>
+        <span class="seal__wreath"></span>
+        <svg class="seal__star" viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.7-4.4 4 1.2 5.8L12 16.2l-5.3 2.9 1.2-5.8-4.4-4 5.9-.7z"/></svg>
       </div>
-      <div>
+      <div class="brand">
         <h1 id="site-title">Рейтинг классов</h1>
-        <p id="site-subtitle" class="muted-light"></p>
+        <p id="site-subtitle"></p>
       </div>
+      <nav class="nav" aria-label="Разделы">
+        <a href="#rating-section">Рейтинг</a>
+        <a href="#rewards-section">Награды</a>
+        <a href="#rules-section" data-optional>Правила</a>
+        <a href="#faq-section" data-optional>Вопросы</a>
+        <a href="#contact">Связаться</a>
+      </nav>
     </div>
-    <nav class="wrap nav" aria-label="Разделы">
-      <a href="#rating-section">Рейтинг</a>
-      <a href="#rewards-section">Награды</a>
-      <a href="#rules-section" data-optional>Правила</a>
-      <a href="#faq-section" data-optional>Вопросы</a>
-      <a href="#contact">Связаться</a>
-    </nav>
+
+    <section class="wrap hero" id="leaders-section" hidden>
+      <h2 class="hero__title">Лидеры за <span id="leaders-month"></span></h2>
+      <ol class="podium" id="podium"></ol>
+      <div class="par-leaders" id="par-leaders"></div>
+    </section>
   </header>
 
   <main class="wrap">
-    <section class="picker card">
+    <section class="picker">
       <label for="class-select">Мой класс</label>
       <div class="picker__row">
         <select id="class-select" disabled><option>Загрузка…</option></select>
@@ -44,7 +54,7 @@
         <div class="stat stat--main">
           <span class="stat__label">Можно потратить</span>
           <span class="stat__value" id="st-balance">0</span>
-          <span class="stat__hint">остаток баллов</span>
+          <span class="stat__hint">остаток баллов класса</span>
         </div>
         <div class="stat">
           <span class="stat__label">Заработано за год</span>
@@ -56,36 +66,27 @@
         </div>
         <div class="stat">
           <span class="stat__label">Место в гимназии</span>
-          <span class="stat__value" id="st-rank">—</span>
+          <span class="stat__value stat__value--rank" id="st-rank">—</span>
           <span class="stat__hint" id="st-rank-par"></span>
         </div>
       </div>
 
       <div class="grid2">
-        <article class="card">
+        <article class="panel">
           <h2>Баллы за <span id="month-name"></span></h2>
           <p class="teacher muted" id="teacher"></p>
           <ul class="cats" id="cats"></ul>
-          <p class="total">Итого за месяц: <b id="month-total">0</b></p>
+          <p class="total">Итого за месяц <b id="month-total">0</b></p>
           <button type="button" class="linkbtn" id="dispute-btn">Нашли ошибку в баллах?</button>
         </article>
-        <article class="card">
+        <article class="panel">
           <h2>По месяцам</h2>
           <ul class="months" id="months"></ul>
         </article>
       </div>
     </section>
 
-    <section class="card" id="leaders-section" hidden>
-      <div class="section-head">
-        <h2>Лидеры: <span id="leaders-month"></span></h2>
-        <p class="muted">Больше всего баллов за месяц</p>
-      </div>
-      <ol class="podium" id="podium"></ol>
-      <div class="par-leaders" id="par-leaders"></div>
-    </section>
-
-    <section class="card" id="rewards-section">
+    <section class="block" id="rewards-section">
       <div class="section-head">
         <h2>Награды</h2>
         <p class="muted">Баллы копятся весь год. Награду выбирает класс, покупку подтверждает самоуправление.</p>
@@ -94,20 +95,20 @@
       <div class="rewards" id="rewards"><p class="muted">Загрузка…</p></div>
     </section>
 
-    <section class="card" id="rating-section">
+    <section class="block" id="rating-section">
       <div class="section-head section-head--row">
         <h2>Рейтинг классов за год</h2>
         <div class="tabs" id="rating-tabs" role="tablist"></div>
       </div>
       <div class="table-wrap">
         <table class="rating">
-          <thead><tr><th>#</th><th>Класс</th><th class="hide-sm">Кл. руководитель</th><th>За год</th><th class="hide-sm" title="Изменение места за последний месяц">±</th><th class="hide-sm">Потрачено</th><th>Остаток</th></tr></thead>
+          <thead><tr><th>Место</th><th>Класс</th><th class="hide-sm">Кл. руководитель</th><th>За год</th><th class="hide-sm" title="Изменение места за последний месяц">±</th><th class="hide-sm">Потрачено</th><th>Остаток</th></tr></thead>
           <tbody id="rating-body"></tbody>
         </table>
       </div>
     </section>
 
-    <section class="card" id="rules-section" hidden>
+    <section class="block" id="rules-section" hidden>
       <div class="section-head">
         <h2>Как заработать баллы</h2>
         <p class="muted">Критерии, по которым самоуправление начисляет баллы каждый месяц</p>
@@ -115,14 +116,14 @@
       <div class="rules" id="rules"></div>
     </section>
 
-    <section class="card" id="faq-section" hidden>
+    <section class="block" id="faq-section" hidden>
       <div class="section-head">
         <h2>Вопросы и ответы</h2>
       </div>
       <div class="faq" id="faq"></div>
     </section>
 
-    <section class="card" id="contact">
+    <section class="block" id="contact">
       <div class="section-head">
         <h2>Связаться с самоуправлением</h2>
         <p class="muted">Задайте вопрос или сообщите об ошибке в баллах. Ответ появится здесь же по коду обращения.</p>
@@ -164,7 +165,7 @@
             <button type="submit" class="btn" id="cf-submit">Отправить</button>
             <span class="cform__msg" id="cf-msg" role="status"></span>
           </div>
-          <p class="hint">Фамилия, имя и текст обращения видят только члены самоуправления. На сайте публикуется только ответ по коду.</p>
+          <p class="hint">Фамилию, имя и текст обращения видят только члены самоуправления. На сайте публикуется только ответ по коду.</p>
         </form>
 
         <aside class="tickets">
@@ -184,8 +185,8 @@
     </footer>
   </main>
 
+  <script src="fx.js"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
-  <script src="quest.js"></script>
 </body>
 </html>

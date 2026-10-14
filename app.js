@@ -32,6 +32,12 @@
   const num = (v) => { const n = parseFloat(String(v).replace(",", ".").replace(/\s/g, "")); return isFinite(n) ? n : 0; };
   const isClass = (s) => /^\d{1,2}\s*[А-ЯЁа-яё]$/.test((s || "").trim());
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const plural = (n, one, few, many) => {
+    const a = Math.abs(n) % 100, b = a % 10;
+    return a > 10 && a < 20 ? many : b === 1 ? one : b >= 2 && b <= 4 ? few : many;
+  };
+  const pts = (n) => `${n} ${plural(n, "балл", "балла", "баллов")}`;
+  const FX = window.FX || { laurel: () => "", countUp: (el, v) => { if (el) el.textContent = v; }, confetti() {}, snapshot: () => new Map(), flip() {}, onFirstView: (el, cb) => cb(), still: () => true };
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* ignore */ } },
@@ -428,7 +434,6 @@
         e.preventDefault();
         const code = normCode($("ticket-code").value);
         if (!/^[A-Z0-9]{3}-[A-Z0-9]{3}$/.test(code)) { $("ticket-code").focus(); return; }
-        if (window.Quest?.ticket?.(code)) { $("ticket-code").value = ""; return; }
         await loadAnswers(); renderFaq();
         renderTickets(code);
         $("ticket-code").value = "";
@@ -437,22 +442,7 @@
       renderTickets();
     }
 
-    // отправка в форму из других модулей (пасхалка); возвращает код обращения
-    async function send({ type, name, cls, context, message }) {
-      if (!enabled) throw new Error("Форма не подключена");
-      const code = newCode();
-      const body = new URLSearchParams();
-      body.append(F.code, code); body.append(F.type, type); body.append(F.name, name);
-      body.append(F.cls, prettyClass(cls)); if (F.context) body.append(F.context, context || ""); body.append(F.message, message || "—");
-      await fetch(`https://docs.google.com/forms/d/e/${C.formId}/formResponse`, { method: "POST", mode: "no-cors", body });
-      const tickets = readJSON(TICKETS, []);
-      tickets.unshift({ code, type, date: Date.now(), cls, preview: (message || "").slice(0, 80) });
-      store.set(TICKETS, JSON.stringify(tickets.slice(0, 20)));
-      renderTickets();
-      return code;
-    }
-
-    return { init, open, renderTickets, syncClass, newCode, send };
+    return { init, open, renderTickets, syncClass };
   })();
 
   // ---------- render ----------
@@ -479,9 +469,15 @@
     if (!k || !S.classes[k]) { view.hidden = true; return; }
     view.hidden = false;
     const c = S.classes[k];
-    $("st-balance").textContent = c.balance;
-    $("st-year").textContent = c.year;
-    $("st-spent").textContent = c.spent;
+    const fresh = view.dataset.k !== k;
+    view.dataset.k = k;
+    if (fresh) {
+      FX.countUp($("st-balance"), c.balance, { dur: 1100 });
+      FX.countUp($("st-year"), c.year, { delay: 80 });
+      FX.countUp($("st-spent"), c.spent, { delay: 160 });
+    } else {
+      $("st-balance").textContent = c.balance; $("st-year").textContent = c.year; $("st-spent").textContent = c.spent;
+    }
     $("st-rank").textContent = `${c.rank} из ${Object.keys(S.classes).length}`;
     $("st-rank-par").textContent = `${c.rankPar} из ${c.parSize} в параллели`;
     $("teacher").textContent = c.teacher ? `Кл. руководитель: ${c.teacher}` : "";
@@ -490,16 +486,16 @@
     const row = m?.classes[k];
     $("month-name").textContent = S.month.toLowerCase();
     const max = Math.max(5, ...(row ? row.scores.map(s => s.v) : [0]));
-    $("cats").innerHTML = row ? row.scores.map(s =>
-      `<li class="${s.v ? "" : "zero"}"><span>${esc(s.name)}</span><span class="num">${s.v}</span>
+    $("cats").innerHTML = row ? row.scores.map((s, i) =>
+      `<li class="${s.v ? "" : "zero"}" style="--i:${i}"><span>${esc(s.name)}</span><span class="num">${s.v}</span>
        <span class="bar"><span style="width:${(s.v / max) * 100}%"></span></span></li>`).join("")
       : `<li class="zero">Класса нет на этом листе</li>`;
-    $("month-total").textContent = row ? row.total : 0;
+    FX.countUp($("month-total"), row ? row.total : 0, { dur: 700 });
 
     const mmax = Math.max(1, ...S.months.map(x => x.classes[k]?.total || 0));
-    $("months").innerHTML = S.months.map(x => {
+    $("months").innerHTML = S.months.map((x, i) => {
       const v = x.classes[k]?.total || 0;
-      return `<li class="${x.name === S.month ? "current" : ""}"><span>${esc(x.name)}</span><span class="num">${v}</span>
+      return `<li class="${x.name === S.month ? "current" : ""}" style="--i:${i}"><span>${esc(x.name)}</span><span class="num">${v}</span>
         <span class="bar"><span style="width:${(v / mmax) * 100}%"></span></span></li>`;
     }).join("");
   }
@@ -507,37 +503,40 @@
   function renderRewards() {
     const box = $("rewards");
     if (!S.rewards.length) {
-      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; window.Quest?.decorateRewards?.(); return;
+      box.innerHTML = `<p class="muted">Список наград скоро появится.</p>`; return;
     }
     const bal = S.current ? S.classes[S.current].balance : null;
-    box.innerHTML = S.rewards.map(r => {
+    box.innerHTML = S.rewards.map((r, i) => {
       const can = bal !== null && bal >= r.price;
-      const need = bal === null ? "" : can ? "Хватает баллов ✓" : `Не хватает ${r.price - bal}`;
-      return `<div class="reward ${can ? "can" : ""}">
-        <span class="price">${r.price} баллов</span>
+      const need = bal === null ? "" : can ? "Хватает баллов" : `Не хватает ${pts(r.price - bal)}`;
+      const prog = bal === null || can ? "" : `<span class="reward__prog"><span style="width:${Math.max(0, Math.min(100, bal / r.price * 100))}%"></span></span>`;
+      return `<div class="reward ${can ? "can" : ""}" style="--i:${i}">
+        <span class="price">${pts(r.price)}</span>
         <h3>${esc(r.name)}</h3>
         ${r.desc ? `<p>${esc(r.desc)}</p>` : "<p></p>"}
-        ${need ? `<span class="need">${need}</span>` : ""}
+        ${prog}${need ? `<span class="need">${need}</span>` : ""}
       </div>`;
     }).join("");
-    window.Quest?.decorateRewards?.();
   }
 
   function renderRating() {
     let keys = Object.keys(S.classes);
     if (S.tab !== "all") keys = keys.filter(k => parallelOf(k) === +S.tab);
     keys.sort((a, b) => S.classes[b].year - S.classes[a].year || a.localeCompare(b, "ru", { numeric: true }));
-    $("rating-body").innerHTML = keys.map(k => {
+    const body = $("rating-body");
+    const before = FX.snapshot(body);
+    const top = Math.max(1, ...keys.map(k => S.classes[k].year));
+    body.innerHTML = keys.map((k, i) => {
       const c = S.classes[k];
       const place = S.tab === "all" ? c.rank : c.rankPar;
-      const medal = place <= 3 ? `<span class="medal">${place}</span>` : place;
+      const medal = place <= 3 ? `<span class="medal m${place}">${place}</span>` : `<span class="place">${place}</span>`;
       const d = S.tab === "all" ? c.delta : c.deltaPar;
       const delta = !d ? `<span class="delta">–</span>` : d > 0
         ? `<span class="delta up" title="Поднялся на ${d}">▲${d}</span>` : `<span class="delta down" title="Опустился на ${-d}">▼${-d}</span>`;
-      return `<tr data-k="${k}" class="${k === S.current ? "me" : ""}"><td>${medal}</td><td>${prettyClass(k)}</td>
-        <td class="hide-sm">${esc(c.teacher)}</td><td>${c.year}</td><td class="hide-sm">${S.months.length >= 2 ? delta : "–"}</td><td class="hide-sm">${c.spent}</td><td>${c.balance}</td></tr>`;
+      return `<tr data-k="${k}" class="${k === S.current ? "me" : ""}" style="--i:${Math.min(i, 24)}"><td>${medal}</td><td><b class="cls">${prettyClass(k)}</b></td>
+        <td class="hide-sm">${esc(c.teacher)}</td><td class="yr">${c.year}<i class="ybar" style="--w:${(c.year / top * 100).toFixed(1)}%"></i></td><td class="hide-sm">${S.months.length >= 2 ? delta : "–"}</td><td class="hide-sm">${c.spent}</td><td>${c.balance}</td></tr>`;
     }).join("");
-    window.Quest?.decorateRating?.();
+    FX.flip(body, before);
   }
 
   function renderLeaders() {
@@ -548,19 +547,32 @@
     sec.hidden = false;
     $("leaders-month").textContent = S.month.toLowerCase();
     // топ-3 с учётом равных баллов
-    const top = [];
+    // ступени пьедестала: классы с равными баллами стоят на одной ступени
+    const steps = [];
     for (const [k, v] of list) {
       const place = 1 + list.filter(([, x]) => x.total > v.total).length;
       if (place > 3) break;
-      top.push({ k, v, place });
+      const st = steps.find(x => x.place === place);
+      if (st) st.ks.push(k); else steps.push({ place, total: v.total, ks: [k] });
     }
-    $("podium").innerHTML = top.map(t => `<li class="p${t.place} ${t.k === S.current ? "me" : ""}" data-k="${t.k}">
-      <span class="podium__place">${t.place}</span><span class="podium__cls">${prettyClass(t.k)}</span>
-      <span class="podium__pts">${t.v.total} баллов</span></li>`).join("");
+    const sizes = { 1: 132, 2: 108, 3: 108 };
+    $("podium").innerHTML = steps.map((t, i) => {
+      const names = t.ks.map(k => `<span class="pk${k === S.current ? " me" : ""}" data-k="${k}" tabindex="0" role="button">${prettyClass(k)}</span>`).join(`<span class="sep">, </span>`);
+      return `<li class="p${t.place}${t.ks.length > 2 ? " many" : ""}" style="--d:${i}" aria-label="${t.place} место: ${t.ks.map(prettyClass).join(", ")}, ${pts(t.total)}">
+      <div class="wreath">${FX.laurel({ size: sizes[t.place], leaves: 9, r: 40 })}<span class="podium__place">${t.place}</span></div>
+      <span class="podium__cls">${names}</span>
+      <span class="podium__pts"><span class="cnt">${t.total}</span> ${plural(t.total, "балл", "балла", "баллов")}</span></li>`;
+    }).join("");
+    $("podium").querySelectorAll("li").forEach((li, i) => FX.countUp(li.querySelector(".cnt"), steps[i].total, { dur: 1100, delay: 500 + i * 120 }));
+    if (!renderLeaders.done) {
+      renderLeaders.done = true;
+      const first = $("podium").querySelector(".p1");
+      if (first) setTimeout(() => FX.confetti(first), 1250);
+    }
     const pars = {};
     for (const [k, v] of list) { const p = parallelOf(k); if (!pars[p] || pars[p][0].total === v.total) (pars[p] ||= []).push({ k, total: v.total }); }
     $("par-leaders").innerHTML = Object.keys(pars).sort((a, b) => a - b).map(p =>
-      `<span class="chip"><b>${p} кл.</b> ${pars[p].map(x => prettyClass(x.k)).join(", ")} · ${pars[p][0].total}</span>`).join("");
+      `<span class="chip"><span class="chip__par">${p} кл.</span> ${pars[p].map(x => prettyClass(x.k)).join(", ")} <span class="chip__pts">${pars[p][0].total}</span></span>`).join("");
   }
 
   function renderRules() {
@@ -569,7 +581,7 @@
     syncNav();
     if (!S.rules.length) return;
     $("rules").innerHTML = S.rules.map(r => `<div class="rule">
-      <div class="rule__head"><h3>${esc(r.name)}</h3>${r.max ? `<span class="price">до ${esc(r.max)}</span>` : ""}</div>
+      <div class="rule__head"><h3>${esc(r.name)}</h3>${r.max ? `<span class="rule__max">до ${esc(r.max)}</span>` : ""}</div>
       <p>${linkify(r.desc)}</p></div>`).join("");
   }
 
@@ -589,6 +601,11 @@
 
   function renderAll() { renderClass(); renderLeaders(); renderRewards(); renderRating(); Contact.syncClass(); }
 
+  // после выбора класса из рейтинга или пьедестала — прокрутить к его карточке
+  function showClass() {
+    document.querySelector(".picker").scrollIntoView({ behavior: FX.still() ? "auto" : "smooth", block: "start" });
+  }
+
   function selectClass(k) {
     S.current = k && S.classes[k] ? k : null;
     $("class-select").value = S.current || "";
@@ -596,21 +613,23 @@
     renderAll();
   }
 
-  // доступ для пасхалки (quest.js)
-  window.Rating = { S, CFG, fetchSheet, parseCSV, esc, prettyClass, normClass, store, renderAll, newCode: () => Contact.newCode(), send: (...a) => Contact.send(...a) };
-
   // ---------- init ----------
   syncNav();
   loadAnnouncements();
   load().then(() => {
     fillSelects();
-    document.dispatchEvent(new Event("rating:ready"));
     $("status").textContent = "";
     $("class-select").addEventListener("change", e => selectClass(e.target.value));
     $("month-select").addEventListener("change", e => { S.month = e.target.value; renderClass(); renderLeaders(); });
     $("podium").addEventListener("click", e => {
-      const li = e.target.closest("li[data-k]"); if (li) selectClass(li.dataset.k);
+      const li = e.target.closest("[data-k]"); if (li) { selectClass(li.dataset.k); showClass(); }
     });
+    $("podium").addEventListener("keydown", e => {
+      const li = e.target.closest("[data-k]"); if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectClass(li.dataset.k); showClass(); }
+    });
+    const tbl = document.querySelector("table.rating");
+    tbl.classList.add("waiting");
+    FX.onFirstView(tbl, () => { tbl.classList.remove("waiting"); tbl.classList.add("reveal"); setTimeout(() => tbl.classList.remove("reveal"), 1800); });
     $("dispute-btn").addEventListener("click", () => Contact.open("Ошибка в баллах", { month: S.month }));
     Contact.init();
     fetchSheet(CFG.rulesSheet || "Правила").then(t => { S.rules = parseRules(parseCSV(t)); renderRules(); }).catch(() => renderRules());
@@ -623,7 +642,7 @@
     });
     $("rating-body").addEventListener("click", e => {
       const tr = e.target.closest("tr"); if (!tr) return;
-      selectClass(tr.dataset.k); window.scrollTo({ top: 0, behavior: "smooth" });
+      selectClass(tr.dataset.k); showClass();
     });
     const fromHash = normClass(decodeURIComponent(location.hash.slice(1)));
     selectClass(S.classes[fromHash] ? fromHash : store.get("myClass"));
