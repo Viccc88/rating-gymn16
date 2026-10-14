@@ -26,6 +26,8 @@
     return rows.map(r => r.map(v => v.trim()));
   }
 
+  // место «подряд»: при равных баллах классы делят место, следующее идёт без пропуска (1, 1, 2, 3…)
+  const denseRank = (values, v) => 1 + new Set(values.filter(x => x > v)).size;
   const normClass = (s) => (s || "").replace(/\s+/g, "").toUpperCase().replace("Ё", "Е");
   const prettyClass = (k) => k.replace(/^(\d+)/, "$1 ");
   const parallelOf = (k) => parseInt(k, 10);
@@ -95,7 +97,10 @@
     const now = new Date();
     const wanted = CFG.months.filter(m => { const d = monthStart(m); return !d || d <= now; });
 
-    const monthTexts = await Promise.all(wanted.map(m => fetchSheet(m).then(t => [m, t]).catch(e => [m, null, e])));
+    const steps = wanted.length + 2;
+    let doneSteps = 0;
+    const tick = () => window.Loader?.progress(++doneSteps / steps);
+    const monthTexts = await Promise.all(wanted.map(m => fetchSheet(m).then(t => [m, t]).catch(e => [m, null, e]).finally(tick)));
     const seen = new Set();
     const errors = [];
     for (const [name, text, err] of monthTexts) {
@@ -115,8 +120,8 @@
 
     // награды и покупки — необязательные листы
     const [rw, pr] = await Promise.all([
-      fetchSheet(CFG.rewardsSheet).catch(() => null),
-      fetchSheet(CFG.purchasesSheet).catch(() => null),
+      fetchSheet(CFG.rewardsSheet).catch(() => null).finally(tick),
+      fetchSheet(CFG.purchasesSheet).catch(() => null).finally(tick),
     ]);
     const monthSet = new Set(monthTexts.map(x => x[1]).filter(Boolean));
     if (rw && !monthSet.has(rw)) S.rewards = parseRewards(parseCSV(rw));
@@ -136,9 +141,9 @@
     const ranked = Object.keys(S.classes).sort((a, b) => S.classes[b].year - S.classes[a].year);
     ranked.forEach(k => {
       const c = S.classes[k];
-      c.rank = 1 + ranked.filter(x => S.classes[x].year > c.year).length;
+      c.rank = denseRank(ranked.map(x => S.classes[x].year), c.year);
       const par = ranked.filter(x => parallelOf(x) === parallelOf(k));
-      c.rankPar = 1 + par.filter(x => S.classes[x].year > c.year).length;
+      c.rankPar = denseRank(par.map(x => S.classes[x].year), c.year);
       c.parSize = par.length;
     });
 
@@ -148,10 +153,10 @@
       const prevYear = (k) => S.classes[k].year - (last.classes[k]?.total || 0);
       for (const k of ranked) {
         const p = prevYear(k);
-        const prevRank = 1 + ranked.filter(x => prevYear(x) > p).length;
+        const prevRank = denseRank(ranked.map(prevYear), p);
         S.classes[k].delta = prevRank - S.classes[k].rank;   // >0 — поднялся
         const par = ranked.filter(x => parallelOf(x) === parallelOf(k));
-        S.classes[k].deltaPar = (1 + par.filter(x => prevYear(x) > p).length) - S.classes[k].rankPar;
+        S.classes[k].deltaPar = denseRank(par.map(prevYear), p) - S.classes[k].rankPar;
       }
     }
   }
@@ -550,7 +555,7 @@
     // ступени пьедестала: классы с равными баллами стоят на одной ступени
     const steps = [];
     for (const [k, v] of list) {
-      const place = 1 + list.filter(([, x]) => x.total > v.total).length;
+      const place = denseRank(list.map(([, x]) => x.total), v.total);
       if (place > 3) break;
       const st = steps.find(x => x.place === place);
       if (st) st.ks.push(k); else steps.push({ place, total: v.total, ks: [k] });
@@ -567,7 +572,7 @@
     if (!renderLeaders.done) {
       renderLeaders.done = true;
       const first = $("podium").querySelector(".p1");
-      if (first) setTimeout(() => FX.confetti(first), 1250);
+      if (first) (window.Loader ? window.Loader.whenDone() : Promise.resolve()).then(() => setTimeout(() => FX.confetti(first), 1250));
     }
     const pars = {};
     for (const [k, v] of list) { const p = parallelOf(k); if (!pars[p] || pars[p][0].total === v.total) (pars[p] ||= []).push({ k, total: v.total }); }
@@ -613,10 +618,41 @@
     renderAll();
   }
 
+  // ---------- технические работы (лист «Тех. работы») ----------
+  async function checkMaintenance() {
+    if (/[?&]preview\b/.test(location.search)) return null;            // владелец может посмотреть сайт: …/?preview
+    try {
+      const rows = parseCSV(await fetchSheet(CFG.maintenanceSheet || "Тех. работы"));
+      const val = (re) => (rows.find(r => re.test(r[0] || "")) || [])[1] || "";
+      const on = /^\s*(да|вкл|yes|1|true|✓)/i.test(val(/^\s*(режим\s+)?тех/i));
+      return on ? { text: val(/^\s*(текст|сообщени)/i), until: val(/^\s*(до|окончан|срок)/i) } : null;
+    } catch { return null; }                                            // нет листа или нет сети — сайт работает как обычно
+  }
+
+  function showMaintenance(m) {
+    document.documentElement.classList.add("maint-on");
+    const box = $("maintenance");
+    box.hidden = false;
+    box.querySelector(".maint__wreath").innerHTML = FX.laurel({ size: 120, leaves: 9, r: 40 });
+    if (m.text) $("maint-text").textContent = m.text;
+    if (m.until) { $("maint-until").textContent = `Планируем закончить: ${m.until}`; $("maint-until").hidden = false; }
+    document.title = "Технические работы — Рейтинг классов";
+    window.Loader?.hide();
+  }
+
   // ---------- init ----------
   syncNav();
-  loadAnnouncements();
-  load().then(() => {
+  const maintP = checkMaintenance();
+  const dataP = load();
+  dataP.catch(() => {});                                                  // ошибку разберём ниже
+  maintP.then(m => {
+    if (m) { showMaintenance(m); return; }
+    loadAnnouncements();
+    start();
+  });
+
+  function start() {
+  dataP.then(() => {
     fillSelects();
     $("status").textContent = "";
     $("class-select").addEventListener("change", e => selectClass(e.target.value));
@@ -647,11 +683,14 @@
     const fromHash = normClass(decodeURIComponent(location.hash.slice(1)));
     selectClass(S.classes[fromHash] ? fromHash : store.get("myClass"));
     $("updated").textContent = `Обновлено: ${new Date().toLocaleString("ru-RU", { dateStyle: "long", timeStyle: "short" })}`;
+    window.Loader?.hide();
   }).catch(err => {
     console.error(err);
     const st = $("status");
     st.classList.add("error");
     st.textContent = `Не удалось загрузить баллы: ${err.message}. Проверьте, что таблица открыта для просмотра по ссылке.`;
     $("rewards").innerHTML = "";
+    window.Loader?.hide();
   });
+  }
 })();

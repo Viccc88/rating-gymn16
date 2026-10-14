@@ -46,16 +46,22 @@
     if (!el) return;
     to = Math.round(+to || 0);
     if (still() || to === 0) { el.textContent = to; return; }
-    const from = 0, t0 = performance.now() + delay;
+    const from = 0, tok = (el._tok = (el._tok || 0) + 1);
     cancelAnimationFrame(el._raf);
-    const step = (now) => {
-      const p = Math.min(1, Math.max(0, (now - t0) / dur));
-      const e = 1 - Math.pow(1 - p, 4);
-      el.textContent = Math.round(from + (to - from) * e);
-      if (p < 1) el._raf = requestAnimationFrame(step);
-    };
     el.textContent = from;
-    el._raf = requestAnimationFrame(step);
+    // пока виден экран загрузки, счётчик ждёт — иначе он «отыграет» невидимым
+    const ready = window.Loader ? window.Loader.whenDone() : Promise.resolve();
+    ready.then(() => {
+      if (tok !== el._tok) return;
+      const t0 = performance.now() + delay;
+      const step = (now) => {
+        const p = Math.min(1, Math.max(0, (now - t0) / dur));
+        const e = 1 - Math.pow(1 - p, 4);
+        el.textContent = Math.round(from + (to - from) * e);
+        if (p < 1) el._raf = requestAnimationFrame(step);
+      };
+      el._raf = requestAnimationFrame(step);
+    });
   }
 
   // ---------- конфетти ----------
@@ -141,7 +147,7 @@
   document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".block").forEach(sec => onFirstView(sec, () => sec.classList.add("in"), 0.08));
     // венки в печати и на фоне шапки
-    const seal = document.querySelector(".seal__wreath");
+    const seal = document.querySelector(".top .seal__wreath");
     if (seal) seal.innerHTML = laurel({ size: 56, leaves: 7, r: 41, cls: "laurel--seal" });
     const bg = document.querySelector(".top__bg");
     if (bg) bg.innerHTML = laurel({ size: 900, leaves: 11, r: 42, cls: "laurel--bg" });

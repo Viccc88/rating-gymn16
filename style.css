@@ -384,3 +384,55 @@ textarea { resize: vertical; }
 .confetti { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 60; }
 
 .rating tbody tr.me:hover { background-color: #1d1d1d; }
+
+/* ======================================================================
+   Экран загрузки
+   ====================================================================== */
+#loader { display: none; }
+html.is-loading, html.is-loading body { overflow: hidden; }
+.is-loading #loader, .is-leaving #loader {
+  position: fixed; inset: 0; z-index: 100; display: grid; place-content: center; justify-items: center; gap: 14px;
+  background: #000; color: #fff; text-align: center; padding: 24px;
+}
+.loader__mark { position: relative; width: 132px; height: 132px; color: #fff; margin-bottom: 6px; }
+.loader__wreath, .loader__wreath svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.loader__star { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; transform: translate(-50%, -54%); fill: var(--gold); }
+.loader__title { font: 800 1.6rem/1.1 var(--display); letter-spacing: -.01em; }
+.loader__sub { color: #a9a9a3; font-size: .92rem; }
+.loader__track { width: 180px; height: 3px; margin-top: 10px; background: #262626; border-radius: 3px; overflow: hidden; }
+.loader__track span { display: block; height: 100%; background: var(--gold); transform: scaleX(.06); transform-origin: left; transition: transform .45s var(--ease); }
+
+/* пока виден экран загрузки — анимации первого экрана стоят на паузе и стартуют вместе с открытием */
+.is-loading .top *, .is-loading .top *::before, .is-loading .top *::after { animation-play-state: paused !important; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .loader__wreath .stem { animation: draw .9s var(--ease) .1s both; }
+  .loader__wreath .lf { animation: leaf .5s var(--pop) both; animation-delay: calc(250ms + var(--i) * 45ms); }
+  .loader__star { animation: spin-in .9s var(--pop) .55s both, twinkle 1.6s ease-in-out 1.6s infinite; }
+  .loader__title { animation: up .6s var(--ease) .35s both; }
+  .loader__sub { animation: up .6s var(--ease) .5s both; }
+  .loader__track { animation: up .6s var(--ease) .65s both; }
+  /* уход: содержимое чуть отдаляется, чёрная шторка уезжает вверх и открывает шапку */
+  .is-leaving #loader { animation: curtain .9s cubic-bezier(.7, 0, .2, 1) both; }
+  .is-leaving #loader > * { animation: away .45s var(--ease) both; }
+}
+@media (prefers-reduced-motion: reduce) { .is-leaving #loader { display: none; } }
+@keyframes twinkle { 50% { filter: drop-shadow(0 0 10px rgba(236, 210, 140, .7)); } }
+@keyframes curtain { to { clip-path: inset(0 0 100% 0); } }
+@keyframes away { to { opacity: 0; transform: scale(.94); } }
+#loader { clip-path: inset(0 0 0 0); }
+
+/* ======================================================================
+   Технические работы
+   ====================================================================== */
+.maint[hidden] { display: none; }
+html.maint-on .top, html.maint-on main { display: none; }
+.maint { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; background: #000; color: #fff; padding: 32px 20px; text-align: center; }
+.maint__box { max-width: 560px; display: grid; justify-items: center; gap: 16px; }
+.maint__mark { position: relative; width: 120px; height: 120px; color: #fff; }
+.maint__mark .seal__star { width: 42px; height: 42px; }
+.maint h1 { font: 800 clamp(1.5rem, 5vw, 2.2rem)/1.15 var(--display); letter-spacing: -.01em; }
+.maint__text { color: #d0d0ca; font-size: 1.05rem; white-space: pre-line; margin: 0; }
+.maint__until { color: var(--gold-hi); font-weight: 700; margin: 0; }
+.maint__tg { margin-top: 10px; text-decoration: none; background: var(--gold); color: #000; }
+.maint__tg:hover { background: #fff; }
